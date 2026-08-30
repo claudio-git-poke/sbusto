@@ -765,15 +765,33 @@
             const elapsed = cutsceneTime - ev.start;
             if (elapsed >= 0 && elapsed <= ev.duration) {
               const progress = Math.min(elapsed / ev.duration, 1.0);
-              const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === ev.actor.toLowerCase() || k === ev.actor);
-              if (targetActorKey && ev.from && ev.to) {
-                const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
-                const currentY = ev.from[1] + (ev.to[1] - ev.from[1]) * progress;
+              
+              // Ricerca flessibile per ID, nome o tipo dell'attore nel JSON
+              const targetActorKey = Object.keys(actorElements).find(k => {
+                const actorObj = (cutsceneData.actors || []).find(a => a.id === k);
+                if (!actorObj) return false;
+                const searchKey = String(ev.actor).toLowerCase();
+                return (
+                  k.toLowerCase() === searchKey ||
+                  (actorObj.name && actorObj.name.toLowerCase() === searchKey) ||
+                  (actorObj.type && actorObj.type.toLowerCase() === searchKey)
+                );
+              });
+
+              if (targetActorKey) {
+                const defaultPos = actorCurrentPos[targetActorKey] || { x: 100, y: 100 };
+                const fromCoords = ev.from || [defaultPos.x, defaultPos.y];
+                const toCoords = ev.to || [defaultPos.x + 50, defaultPos.y];
+
+                const currentX = fromCoords[0] + (toCoords[0] - fromCoords[0]) * progress;
+                const currentY = fromCoords[1] + (toCoords[1] - fromCoords[1]) * progress;
                 actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
                 
                 const el = actorElements[targetActorKey];
-                el.style.left = `${currentX * scaleX}px`;
-                el.style.top = `${currentY * scaleY}px`;
+                if (el) {
+                  el.style.left = `${currentX * scaleX}px`;
+                  el.style.top = `${currentY * scaleY}px`;
+                }
               }
             }
           }
@@ -870,7 +888,6 @@
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         let legendaryClass = card.rarity === 'Leggendaria' ? ' legendary-shiny' : '';
 
-        // RIMOSSA LA CORNICE E LA SCRITTA "card" CORROTTA
         wrapper.innerHTML = `
           <div class="card card-glow-reveal${legendaryClass}">
             <img src="${card.image_url}" alt="card">
