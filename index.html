@@ -147,32 +147,48 @@
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    /* --- INTEGRAZIONE TUA CORNICE GRAFICA (USO DEL FILE ALLEGATO) --- */
+    /* --- CORNICE GRAFICA CON SCOMPARSA DOPO 1 SECONDO --- */
     .card { 
       width: 100%; height: 100%; 
-      background-image: url('Progetto senza titolo.jpg');
-      background-size: cover;
-      background-position: center;
+      background: #1c1c1c;
       border-radius: 8px; 
-      padding: 34px 14px 24px 14px; 
+      padding: 14px; 
       display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
       pointer-events: none; 
       box-shadow: 0 6px 15px rgba(0,0,0,0.8);
       position: relative;
     }
 
+    /* Overlay della tua cornice che svanisce dopo 1s */
+    .card-frame-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url('Progetto senza titolo.jpg');
+      background-size: cover;
+      background-position: center;
+      border-radius: 8px;
+      z-index: 2;
+      opacity: 1;
+      transition: opacity 0.6s ease-in-out;
+      pointer-events: none;
+    }
+    .card-frame-overlay.fade-out {
+      opacity: 0;
+    }
+
     .card img { 
       width: 100%; 
-      height: 82px; 
+      height: 110px; 
       object-fit: cover; 
       border: 2px solid #2b180a; 
       border-radius: 3px; 
       filter: sepia(0.2) contrast(1.1); 
       background: #000;
+      z-index: 1;
     }
-    .card-title { font-size: 5px; color: #2b180a; font-weight: bold; margin-top: 4px; text-shadow: 0px 0px 1px rgba(255,255,255,0.6); }
-    .card-rarity { font-size: 4px; background: #2b180a; color: #ffcc00; padding: 2px 4px; border-radius: 2px; margin-top: auto; }
-    .duplicate-tag { font-size: 4.5px; color: #800; font-weight: bold; position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); padding: 1px 3px; border-radius: 2px; }
+    .card-title { font-size: 5px; color: #ffd700; font-weight: bold; margin-top: 8px; text-shadow: 1px 1px #000; z-index: 1; }
+    .card-rarity { font-size: 4px; background: #3b2219; color: #ffcc00; padding: 3px 6px; border-radius: 2px; margin-top: auto; z-index: 1; border: 1px solid #ffd700; }
+    .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 2px; z-index: 3; border: 1px solid #ff4444; }
 
     .card-glow-reveal {
       animation: cardGlowFade 2s ease-out forwards;
@@ -264,7 +280,7 @@
           <div id="dialogue-text" style="font-size: 6px; line-height: 9px; color: #f4e8c1;"></div>
           <div style="font-size: 5px; color: #ffd700; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
         </div>
-        <audio id="bg-music" loop></audio>
+        <audio id="gb-music" loop></audio>
       </div>
 
       <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
@@ -272,7 +288,7 @@
         <div id="sparkles-container"></div>
 
         <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE LASER SULLA BUSTA!</div>
+          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE FINO IN FONDO!</div>
           <div style="position: relative;">
             <canvas id="laser-canvas"></canvas>
             <div class="booster-pack" id="booster-pack">
@@ -355,17 +371,33 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    /* --- SUONI ALTO VOLUME E POTENZIATI --- */
+    /* --- SUONO ACCENSIONE "BLING" TIPICO GAMEBOY & AUDIO EFFETTI --- */
     function playHighVolumeSound(type) {
       try {
         initAudio();
         const now = audioCtx.currentTime;
 
         const masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0.8, now); // Volume alto ed evidente
+        masterGain.gain.setValueAtTime(0.8, now);
         masterGain.connect(audioCtx.destination);
 
-        if (type === 'start') {
+        if (type === 'gb_boot') {
+          // Iconico "Bling" di avvio GameBoy
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(587.33, now); // D5
+          osc.frequency.setValueAtTime(880.00, now + 0.08); // A5
+          
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.setValueAtTime(0.4, now + 0.3);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else if (type === 'start') {
           [130.81, 196.00, 261.63, 392.00, 523.25].forEach((freq, i) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -432,6 +464,7 @@
     let dragStartX = 0;
     let dragStartY = 0;
     let dragType = '';
+    let startYPoint = 0;
 
     function setupLaserCanvas() {
       const canvas = document.getElementById('laser-canvas');
@@ -467,7 +500,8 @@
 
       if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
         isDrawingLaser = true;
-        laserPoints = [{ x: clientX - rect.left, y: clientY - rect.top }];
+        startYPoint = clientY - rect.top;
+        laserPoints = [{ x: clientX - rect.left, y: startYPoint }];
         playHighVolumeSound('laser');
       }
     }
@@ -482,10 +516,13 @@
         let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
 
         if (clientX !== null && clientY !== null) {
-          laserPoints.push({ x: clientX - rect.left, y: clientY - rect.top });
+          let currentLocalY = clientY - rect.top;
+          laserPoints.push({ x: clientX - rect.left, y: currentLocalY });
           drawLightningTrail();
 
-          if (laserPoints.length > 10) {
+          // Controllo se il fulmine è arrivato fino in fondo (circa l'80% dell'altezza della busta)
+          let distanceTraveled = currentLocalY - startYPoint;
+          if (distanceTraveled >= rect.height * 0.7) {
             packSliced = true;
             isDrawingLaser = false;
             pack.classList.add('sliced-open');
@@ -495,6 +532,7 @@
               document.getElementById('booster-container').style.display = 'none';
               document.getElementById('cards-area').style.display = 'flex';
               clearLaserCanvas();
+              initCardsFrameTimer();
             }, 700);
           }
         }
@@ -510,6 +548,7 @@
 
     function handleEnd(e) {
       if (isDrawingLaser) {
+        // Se rilascia prima di arrivare in fondo, resetta il tratto
         isDrawingLaser = false;
         clearLaserCanvas();
       }
@@ -530,6 +569,15 @@
       }
     }
 
+    /* --- GESTIONE SCOMPARSA CORNICE DOPO 1 SECONDO --- */
+    function initCardsFrameTimer() {
+      setTimeout(() => {
+        document.querySelectorAll('.card-frame-overlay').forEach(overlay => {
+          overlay.classList.add('fade-out');
+        });
+      }, 1000);
+    }
+
     /* --- RENDERING FULMINE ELETTRICO DINAMICO --- */
     function drawLightningTrail() {
       const canvas = document.getElementById('laser-canvas');
@@ -542,7 +590,6 @@
       
       for (let i = 1; i < laserPoints.length; i++) {
         let p = laserPoints[i];
-        // Aggiunge deviazioni casuali per simulare la scossa elettrica del fulmine
         let jitterX = p.x + (Math.random() * 8 - 4);
         let jitterY = p.y + (Math.random() * 8 - 4);
         ctx.lineTo(jitterX, jitterY);
@@ -555,7 +602,6 @@
       ctx.shadowBlur = 20;
       ctx.stroke();
 
-      // Sotto-traccia colorata interna al plasma
       ctx.strokeStyle = '#00ffff';
       ctx.lineWidth = 2;
       ctx.stroke();
@@ -595,7 +641,7 @@
     }
 
     function startApp() {
-      playHighVolumeSound('start');
+      playHighVolumeSound('gb_boot'); // Suono accensione bling tipico GameBoy
       const p2 = document.getElementById('part2');
       showScreen('part2');
       p2.classList.add('turning-on');
@@ -644,7 +690,7 @@
 
     function startCutscenePlayback() {
       const bgEl = document.getElementById('cutscene-bg');
-      const audioEl = document.getElementById('bg-music');
+      const audioEl = document.getElementById('gb-music');
       const spritesLayer = document.getElementById('sprites-layer');
 
       spritesLayer.innerHTML = '';
@@ -719,7 +765,7 @@
         cutsceneTime += 0.05;
         if (cutsceneTime >= 10.0) {
           clearInterval(cutsceneTimer);
-          document.getElementById('bg-music').pause();
+          document.getElementById('gb-music').pause();
           goToPart4();
         }
       }, 50);
@@ -797,6 +843,7 @@
 
         wrapper.innerHTML = `
           <div class="card card-glow-reveal${legendaryClass}">
+            <div class="card-frame-overlay"></div>
             <img src="${card.image_url}" alt="card">
             <div class="card-title">${card.name}</div>
             <div class="card-rarity">${card.rarity}</div>
