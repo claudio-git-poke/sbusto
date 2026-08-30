@@ -151,27 +151,12 @@
       width: 100%; height: 100%; 
       background: #1c1c1c;
       border-radius: 8px; 
-      padding: 14px; 
+      padding: 10px; 
       display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
       pointer-events: none; 
       box-shadow: 0 6px 15px rgba(0,0,0,0.8);
       position: relative;
-    }
-
-    .card-frame-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-image: url('cornice.png');
-      background-size: cover;
-      background-position: center;
-      border-radius: 8px;
-      z-index: 2;
-      opacity: 1;
-      transition: opacity 0.6s ease-in-out;
-      pointer-events: none;
-    }
-    .card-frame-overlay.fade-out {
-      opacity: 0;
+      overflow: hidden;
     }
 
     .card img { 
@@ -186,7 +171,7 @@
     }
     .card-title { font-size: 5px; color: #ffd700; font-weight: bold; margin-top: 8px; text-shadow: 1px 1px #000; z-index: 1; }
     .card-rarity { font-size: 4px; background: #3b2219; color: #ffcc00; padding: 3px 6px; border-radius: 2px; margin-top: auto; z-index: 1; border: 1px solid #ffd700; }
-    .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 2px; z-index: 3; border: 1px solid #ff4444; }
+    .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 2px; z-index: 11; border: 1px solid #ff4444; }
 
     .card-glow-reveal {
       animation: cardGlowFade 2s ease-out forwards;
@@ -237,10 +222,11 @@
 <body>
 
   <div id="debug-panel">
-    <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL ]</div>
-    <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria!');">Forza Leggendaria</button>
-    <button onclick="forcedRarity = 'Epica'; alert('Forzata Epica!');">Forza Epica</button>
-    <button onclick="forcedRarity = null; alert('Filtro rimosso.');">Reset Filtro</button>
+    <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL F12 ]</div>
+    <button onclick="testSupabaseConnection()">Test Connessione Supabase</button>
+    <button onclick="forcedRarity = 'Leggendaria'; console.log('Forzata Leggendaria'); alert('Forzata Leggendaria!');">Forza Leggendaria</button>
+    <button onclick="forcedRarity = 'Epica'; console.log('Forzata Epica'); alert('Forzata Epica!');">Forza Epica</button>
+    <button onclick="forcedRarity = null; console.log('Filtro rimosso'); alert('Filtro rimosso.');">Reset Filtro</button>
     <button onclick="resetStreakTo1()" style="color: #ff4444; border-color: #ff4444;">Resetta Streak a 1</button>
   </div>
 
@@ -286,7 +272,7 @@
         <div id="sparkles-container"></div>
 
         <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA!</div>
+          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA (90%)!</div>
           <div style="position: relative;">
             <canvas id="laser-canvas"></canvas>
             <div class="booster-pack" id="booster-pack">
@@ -369,6 +355,24 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
+    async function testSupabaseConnection() {
+      console.log("=== INIZIO TEST SUPABASE ===");
+      try {
+        const { data, error } = await _supabase.from('user_state').select('*').limit(1);
+        if (error) {
+          console.error("Errore di connessione Supabase:", error);
+          alert("Errore Supabase! Controlla la console F12.");
+        } else {
+          console.log("Connessione riuscita! Dati letti:", data);
+          alert("Connessione a Supabase OK! Guarda la console F12 per i dettagli.");
+        }
+      } catch (err) {
+        console.error("Eccezione durante il test:", err);
+        alert("Eccezione di rete o configurazione. Guarda la console F12.");
+      }
+      console.log("=== FINE TEST SUPABASE ===");
+    }
+
     function playHighVolumeSound(type) {
       try {
         initAudio();
@@ -447,8 +451,10 @@
     async function resetStreakTo1() {
       try {
         await _supabase.from('user_state').update({ streak_day: 1, months_completed: 0 }).eq('id', 1);
+        console.log("Streak resettata a 1");
         alert('Streak resettata al Giorno 1!');
       } catch(e) {
+        console.error("Errore reset streak:", e);
         alert('Errore: ' + e.message);
       }
     }
@@ -466,8 +472,10 @@
     function setupLaserCanvas() {
       const canvas = document.getElementById('laser-canvas');
       const pack = document.getElementById('booster-pack');
-      canvas.width = pack.offsetWidth;
-      canvas.height = pack.offsetHeight;
+      if (canvas && pack) {
+        canvas.width = pack.offsetWidth;
+        canvas.height = pack.offsetHeight;
+      }
     }
 
     document.addEventListener('mousedown', handleStart);
@@ -491,6 +499,7 @@
         return;
       }
 
+      if (!pack) return;
       const rect = pack.getBoundingClientRect();
       let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
       let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
@@ -509,6 +518,7 @@
       
       if (isDrawingLaser && !packSliced) {
         const pack = document.getElementById('booster-pack');
+        if (!pack) return;
         const rect = pack.getBoundingClientRect();
         let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
         let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
@@ -522,17 +532,19 @@
           let distanceX = Math.abs(currentLocalX - startXPoint);
           let distanceY = Math.abs(currentLocalY - startYPoint);
           
-          if (distanceX >= rect.width * 0.5 || distanceY >= rect.height * 0.5) {
+          // IMPOSTATO AL 90% DEL CORPO DELLA BUSTINA
+          if (distanceX >= rect.width * 0.9 || distanceY >= rect.height * 0.9) {
             packSliced = true;
             isDrawingLaser = false;
             pack.classList.add('sliced-open');
             playHighVolumeSound('laser');
 
             setTimeout(() => {
-              document.getElementById('booster-container').style.display = 'none';
-              document.getElementById('cards-area').style.display = 'flex';
+              const bContainer = document.getElementById('booster-container');
+              const cArea = document.getElementById('cards-area');
+              if (bContainer) bContainer.style.display = 'none';
+              if (cArea) cArea.style.display = 'flex';
               clearLaserCanvas();
-              initCardsFrameTimer();
             }, 700);
           }
         }
@@ -568,16 +580,9 @@
       }
     }
 
-    function initCardsFrameTimer() {
-      setTimeout(() => {
-        document.querySelectorAll('.card-frame-overlay').forEach(overlay => {
-          overlay.classList.add('fade-out');
-        });
-      }, 1000);
-    }
-
     function drawLightningTrail() {
       const canvas = document.getElementById('laser-canvas');
+      if (!canvas) return;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (laserPoints.length < 2) return;
@@ -625,7 +630,8 @@
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
     }
 
     async function saveProfileAndGoToPart1() {
@@ -633,7 +639,9 @@
       const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico';
       try {
         await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
-      } catch(e) {}
+      } catch(e) {
+        console.error("Errore salvataggio profilo:", e);
+      }
       showScreen('part1');
     }
 
@@ -652,7 +660,8 @@
       showScreen('part3');
       
       try {
-        const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+        const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+        if (error) console.error("Errore recupero user_state:", error);
         userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
       } catch(e) {
         userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
@@ -708,7 +717,6 @@
         audioEl.pause();
       }
 
-      // Forza il ricalcolo delle dimensioni del layer sprite basato sul contenitore reale
       const stage = document.getElementById('screen-wrapper');
       const baseWidth = 480;
       const baseHeight = 270;
@@ -725,7 +733,6 @@
         img.className = 'actor-sprite';
         img.id = `actor-sprite-${actor.id}`;
         
-        // Risoluzione corretta dell'asset dell'attore (controlla sia Supabase che URL diretti)
         let assetUrl = userData.avatar_url;
         if (actor.asset) {
           if (actor.asset.startsWith('http')) {
@@ -753,13 +760,11 @@
       cutsceneTimer = setInterval(() => {
         if (isDialogueActive) return;
 
-        // Gestione degli eventi di movimento del JSON (type: "move")
         (cutsceneData.events || []).forEach(ev => {
           if (ev.type === 'move') {
             const elapsed = cutsceneTime - ev.start;
             if (elapsed >= 0 && elapsed <= ev.duration) {
               const progress = Math.min(elapsed / ev.duration, 1.0);
-              // Trova l'attore associato per nome o ID
               const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === ev.actor.toLowerCase() || k === ev.actor);
               if (targetActorKey && ev.from && ev.to) {
                 const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
@@ -773,7 +778,6 @@
             }
           }
 
-          // Gestione dialoghi
           if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
             if (ev.type === 'dialogue') {
               triggeredEvents.add(ev.id);
@@ -825,7 +829,9 @@
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
         if (cData) allCards = cData;
         if (iData) ownedIds = iData.map(i => i.card_id);
-      } catch(e) {}
+      } catch(e) {
+        console.error("Errore fetch carte:", e);
+      }
 
       if (allCards.length === 0) {
         allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
@@ -864,9 +870,9 @@
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         let legendaryClass = card.rarity === 'Leggendaria' ? ' legendary-shiny' : '';
 
+        // RIMOSSA LA CORNICE E LA SCRITTA "card" CORROTTA
         wrapper.innerHTML = `
           <div class="card card-glow-reveal${legendaryClass}">
-            <div class="card-frame-overlay"></div>
             <img src="${card.image_url}" alt="card">
             <div class="card-title">${card.name}</div>
             <div class="card-rarity">${card.rarity}</div>
@@ -879,6 +885,7 @@
 
     function generateFireflies() {
       const container = document.getElementById('sparkles-container');
+      if (!container) return;
       container.innerHTML = '';
       for (let i = 0; i < 25; i++) {
         const f = document.createElement('div');
@@ -901,7 +908,8 @@
 
       if (cardsSwipedCount === 4) {
         setTimeout(() => {
-          document.getElementById('cards-area').style.display = 'none';
+          const cArea = document.getElementById('cards-area');
+          if (cArea) cArea.style.display = 'none';
           showPart4Summary();
         }, 600);
       }
@@ -916,7 +924,9 @@
       try {
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
         if (iData) inventory = iData;
-      } catch(e) {}
+      } catch(e) {
+        console.error("Errore fetch inventario:", e);
+      }
 
       const counts = {};
       inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
@@ -952,7 +962,9 @@
         } else {
           try {
             await _supabase.from('user_inventory').insert({ card_id: card.id });
-          } catch(e) {}
+          } catch(e) {
+            console.error("Errore inserimento inventario:", e);
+          }
           sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
         }
       }
@@ -974,7 +986,9 @@
           dust_count: userData.dust_count,
           last_claim_date: today
         }).eq('id', 1);
-      } catch(e) {}
+      } catch(e) {
+        console.error("Errore aggiornamento user_state:", e);
+      }
 
       document.getElementById('summary-content').innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
       showScreen('part5');
@@ -1003,7 +1017,9 @@
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
         if(cData) cards = cData;
         if(iData) inventory = iData;
-      } catch(e) {}
+      } catch(e) {
+        console.error("Errore apertura album:", e);
+      }
 
       const counts = {};
       inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
