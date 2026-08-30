@@ -288,7 +288,7 @@
         <div id="sparkles-container"></div>
 
         <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE FINO IN FONDO!</div>
+          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA!</div>
           <div style="position: relative;">
             <canvas id="laser-canvas"></canvas>
             <div class="booster-pack" id="booster-pack">
@@ -464,6 +464,7 @@
     let dragStartX = 0;
     let dragStartY = 0;
     let dragType = '';
+    let startXPoint = 0;
     let startYPoint = 0;
 
     function setupLaserCanvas() {
@@ -500,8 +501,9 @@
 
       if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
         isDrawingLaser = true;
+        startXPoint = clientX - rect.left;
         startYPoint = clientY - rect.top;
-        laserPoints = [{ x: clientX - rect.left, y: startYPoint }];
+        laserPoints = [{ x: startXPoint, y: startYPoint }];
         playHighVolumeSound('laser');
       }
     }
@@ -516,13 +518,16 @@
         let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
 
         if (clientX !== null && clientY !== null) {
+          let currentLocalX = clientX - rect.left;
           let currentLocalY = clientY - rect.top;
-          laserPoints.push({ x: clientX - rect.left, y: currentLocalY });
+          laserPoints.push({ x: currentLocalX, y: currentLocalY });
           drawLightningTrail();
 
-          // Controllo se il fulmine è arrivato fino in fondo (circa l'80% dell'altezza della busta)
-          let distanceTraveled = currentLocalY - startYPoint;
-          if (distanceTraveled >= rect.height * 0.7) {
+          // Tollerante: calcola lo spostamento sia verticale che orizzontale (basta il 50% della larghezza o altezza)
+          let distanceX = Math.abs(currentLocalX - startXPoint);
+          let distanceY = Math.abs(currentLocalY - startYPoint);
+          
+          if (distanceX >= rect.width * 0.5 || distanceY >= rect.height * 0.5) {
             packSliced = true;
             isDrawingLaser = false;
             pack.classList.add('sliced-open');
@@ -548,7 +553,6 @@
 
     function handleEnd(e) {
       if (isDrawingLaser) {
-        // Se rilascia prima di arrivare in fondo, resetta il tratto
         isDrawingLaser = false;
         clearLaserCanvas();
       }
