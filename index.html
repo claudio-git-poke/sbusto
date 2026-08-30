@@ -18,11 +18,12 @@
       padding: 10px;
     }
 
+    /* CORNICE ESTERNA ADATTIVA */
     #gameboy-frame {
       width: 100%;
-      max-width: 600px;
-      height: 95vh;
-      max-height: 500px;
+      max-width: 640px;
+      height: 92vh;
+      max-height: 400px;
       background: #d32f2f;
       border: 6px solid #8b0000;
       border-radius: 20px;
@@ -32,29 +33,39 @@
       align-items: center;
       justify-content: center;
       position: relative;
-      padding: 15px;
+      padding: 12px;
+    }
+
+    @media (max-aspect-ratio: 1/1) {
+      #gameboy-frame {
+        max-height: 80vh;
+      }
     }
     
     #frame-label {
       position: absolute;
-      top: 8px;
+      top: 6px;
       color: #fff;
       font-size: 7px;
       letter-spacing: 1px;
       text-align: center;
     }
 
+    /* DISPLAY 16:9 FISSO DENTRO LA CORNICE */
     #screen-wrapper {
       width: 100%;
-      max-width: 400px;
       height: 100%;
-      max-height: 300px;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 16 / 9;
+      max-width: 100%;
+      max-height: 100%;
       background: #000;
       border: 4px solid #333;
       border-radius: 8px;
       overflow: hidden;
       position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .screen { width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 12px; box-sizing: border-box; }
@@ -62,7 +73,7 @@
 
     /* PARTE 0 LOGIN */
     #part0 { background: #222; color: #fff; font-size: 8px; }
-    #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 6px 0 12px 0; width: 80%; border: 2px solid #fff; background: #000; color: #9bbc0f; }
+    #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 4px 0 8px 0; width: 80%; border: 2px solid #fff; background: #000; color: #9bbc0f; }
 
     #part1 { background: #111; color: #fff; }
     #part2 { background: #000; }
@@ -75,15 +86,15 @@
 
     .gb-screen { background: #9bbc0f; color: #0f380f; }
 
-    .card-container { position: relative; width: 160px; height: 230px; margin-top: 10px; }
+    .card-container { position: relative; width: 140px; height: 190px; margin-top: 5px; }
     .card-wrapper { position: absolute; width: 100%; height: 100%; transition: transform 0.4s ease, opacity 0.4s ease; cursor: grab; }
     .card-swiped { transform: translateY(-350px) rotate(-10deg) !important; opacity: 0 !important; pointer-events: none; }
     
     .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
-    .card img { width: 100%; height: 110px; object-fit: cover; border: 2px solid #0f380f; }
-    .card-title { font-size: 8px; color: #0f380f; }
-    .card-rarity { font-size: 6px; background: #306230; color: #9bbc0f; padding: 2px 4px; }
-    .duplicate-tag { font-size: 6px; color: #8b0500; font-weight: bold; }
+    .card img { width: 100%; height: 90px; object-fit: cover; border: 2px solid #0f380f; }
+    .card-title { font-size: 7px; color: #0f380f; }
+    .card-rarity { font-size: 5px; background: #306230; color: #9bbc0f; padding: 2px 4px; }
+    .duplicate-tag { font-size: 5px; color: #8b0500; font-weight: bold; }
 
     #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
     .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; }
@@ -92,17 +103,14 @@
     .excel-table th { background: #e6e6e6; }
     .excel-table tr:nth-child(even) { background: #f9f9f9; }
 
-    button { font-family: 'Press Start 2P', monospace; padding: 10px 12px; font-size: 8px; cursor: pointer; background: #8b956d; color: #0f380f; border: 3px solid #0f380f; box-shadow: 2px 2px 0px #306230; margin-top: 8px; }
+    button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #8b956d; color: #0f380f; border: 3px solid #0f380f; box-shadow: 2px 2px 0px #306230; margin-top: 6px; }
     button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #306230; }
     
-    .btn-small { padding: 6px 8px; font-size: 7px; }
-    .stat-box { font-size: 6px; line-height: 10px; text-align: left; }
+    .btn-small { padding: 5px 7px; font-size: 6px; }
+    .stat-box { font-size: 6px; line-height: 9px; text-align: left; }
 
-    /* RENDERER CUTSCENE ENGINE */
     .actor-sprite { 
       position: absolute; 
-      width: 48px; 
-      height: 48px; 
       pointer-events: none; 
       z-index: 5; 
       image-rendering: pixelated; 
@@ -113,13 +121,12 @@
 <body>
 
   <div id="gameboy-frame">
-    <div id="frame-label">[ GAMEBOY PLAYER ]</div>
+    <div id="frame-label">[ GAMEBOY PLAYER 16:9 ]</div>
 
     <div id="screen-wrapper">
 
-      <!-- PARTE 0: LOGIN & PROFILO -->
       <div id="part0" class="screen active">
-        <div style="margin-bottom: 8px; color: #9bbc0f;">CONFIGURAZIONE</div>
+        <div style="margin-bottom: 6px; color: #9bbc0f;">CONFIGURAZIONE</div>
         <label>NOME UTENTE:</label>
         <input type="text" id="login-username" value="Giocatore">
         <label>URL AVATAR (PNG):</label>
@@ -127,15 +134,12 @@
         <button onclick="saveProfileAndGoToPart1()">SALVA E VAI</button>
       </div>
 
-      <!-- PARTE 1: START -->
       <div id="part1" class="screen">
         <button id="start-btn" onclick="startApp()">START</button>
       </div>
 
-      <!-- PARTE 2: ACCENSIONE -->
       <div id="part2" class="screen"></div>
 
-      <!-- PARTE 3: CUTSCENE ENGINE -->
       <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
         <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
         <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
@@ -145,38 +149,34 @@
           <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
         </div>
 
-        <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 50px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; text-align: left; display: none;">
-          <div id="speaker-name" style="font-size: 7px; color: #306230; font-weight: bold; margin-bottom: 4px; text-transform: uppercase;"></div>
-          <div id="dialogue-text" style="font-size: 7px; line-height: 10px; color: #0f380f;"></div>
-          <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK OVUNQUE PER AVANZARE]</div>
+        <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 45px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; text-align: left; display: none;">
+          <div id="speaker-name" style="font-size: 7px; color: #306230; font-weight: bold; margin-bottom: 3px; text-transform: uppercase;"></div>
+          <div id="dialogue-text" style="font-size: 6px; line-height: 9px; color: #0f380f;"></div>
+          <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
         </div>
         <audio id="bg-music" loop></audio>
       </div>
 
-      <!-- PARTE 4: SBUSTATA -->
       <div id="part4" class="screen" style="background: #000; color: #fff;">
-        <div style="font-size: 7px; margin-bottom: 4px;">SCORRI IN ALTO (SWIPE)</div>
+        <div style="font-size: 6px; margin-bottom: 4px;">SCORRI IN ALTO (SWIPE)</div>
         <div class="card-container" id="cards-stack"></div>
-        <button id="btn-to-part5" onclick="goToPart5()" style="display:none; margin-top: 10px;">RIEPILOGO</button>
+        <button id="btn-to-part5" onclick="goToPart5()" style="display:none; margin-top: 6px;">RIEPILOGO</button>
       </div>
 
-      <!-- PARTE 5: RIEPILOGO & ALBUM -->
       <div id="part5" class="screen gb-screen">
-        <h3 style="font-size: 9px; margin-bottom: 6px;">RIEPILOGO</h3>
-        <div id="summary-content" style="font-size: 6px; line-height: 11px; max-width: 90%;"></div>
-        <button onclick="openAlbum()" class="btn-small" style="background: #306230; color: #9bbc0f; margin-top: 12px;">VEDI ALBUM EXCEL</button>
+        <h3 style="font-size: 8px; margin-bottom: 4px;">RIEPILOGO</h3>
+        <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
+        <button onclick="openAlbum()" class="btn-small" style="background: #306230; color: #9bbc0f; margin-top: 8px;">VEDI ALBUM EXCEL</button>
         <button onclick="turnOff()">SPEGNI</button>
       </div>
 
-      <!-- PARTE 6: FINE -->
       <div id="part6" class="screen" style="background: #000;">
         <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
       </div>
 
-      <!-- PARTE ALBUM EXCEL -->
       <div id="part-album" class="screen">
         <div class="excel-header">DATABASE INVENTARIO UTENTE</div>
-        <div style="font-size: 9px; margin-bottom: 6px;">
+        <div style="font-size: 8px; margin-bottom: 6px;">
           <b>Polvere Totale:</b> <span id="excel-dust">0</span>
         </div>
         <table class="excel-table">
@@ -190,7 +190,7 @@
           </thead>
           <tbody id="excel-table-body"></tbody>
         </table>
-        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 10px; background: #ccc; color: #000;">TORNA AL RIEPILOGO</button>
+        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #ccc; color: #000;">TORNA AL RIEPILOGO</button>
       </div>
 
     </div>
@@ -323,7 +323,6 @@
       document.getElementById('val-dolls').innerText = userData.dolls_count;
       document.getElementById('val-dust').innerText = userData.dust_count;
 
-      // DOWNLOAD CON CACHE-BUSTING PER FORZARE L'AGGIORNAMENTO
       const fileName = `cutscenes/giorno${userData.streak_day}.json`;
       try {
         const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
@@ -332,7 +331,6 @@
           cutsceneData = await response.json();
         }
       } catch(e) {
-        console.error(`Errore download cutscene ${fileName}:`, e);
         cutsceneData = null;
       }
 
@@ -340,7 +338,7 @@
         cutsceneData = {
           background: '',
           music: '',
-          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [176, 126] }],
+          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
           events: [{ id: 1, type: 'dialogue', speaker: 'SISTEMA', text: `Giorno ${userData.streak_day}: Benvenuto ${userData.username || 'Giocatore'}!`, start: 0, duration: 3 }]
         };
       }
@@ -371,10 +369,10 @@
         audioEl.pause();
       }
 
-      // CALCOLO SCALA PROPORZIONALE 1:1 CON L'EDITOR
+      // SCALA 16:9 BASATA SU BASE 480x270
       const stage = document.getElementById('screen-wrapper');
-      const scaleX = stage.clientWidth / 400;
-      const scaleY = stage.clientHeight / 300;
+      const scaleX = stage.clientWidth / 480;
+      const scaleY = stage.clientHeight / 270;
 
       (cutsceneData.actors || []).forEach(actor => {
         const img = document.createElement('img');
@@ -397,8 +395,8 @@
       cutsceneTimer = setInterval(() => {
         if (isDialogueActive) return;
 
-        const currentScaleX = stage.clientWidth / 400;
-        const currentScaleY = stage.clientHeight / 300;
+        const currentScaleX = stage.clientWidth / 480;
+        const currentScaleY = stage.clientHeight / 270;
 
         (cutsceneData.events || []).forEach(ev => {
           if (ev.type === 'move' && cutsceneTime >= ev.start && cutsceneTime <= (ev.start + ev.duration)) {
@@ -568,7 +566,7 @@
       } catch(e) {}
 
       const summaryBox = document.getElementById('summary-content');
-      summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 4px;">- ${item}</p>`).join('');
+      summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
 
       showScreen('part5');
     }
