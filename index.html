@@ -157,7 +157,6 @@
       box-shadow: 0 6px 15px rgba(0,0,0,0.8);
       position: relative;
       overflow: hidden;
-      transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
     }
 
     .card-frame-overlay {
@@ -188,56 +187,6 @@
     .card-rarity { font-size: 4px; background: #3b2219; color: #ffcc00; padding: 3px 6px; border-radius: 2px; margin-top: auto; z-index: 1; border: 1px solid #ffd700; }
     .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 2px; z-index: 11; border: 1px solid #ff4444; }
 
-    /* --- EFFETTI DI RARITÀ INTEGRATI SULLA CARD --- */
-    .card.comune {
-      background: radial-gradient(circle at center, #dcdcdc 0%, #b5b5b5 100%);
-      border: 2px solid #737373;
-    }
-    .card.non-comune {
-      background: radial-gradient(circle at center, #595959 0%, #383838 100%);
-      border: 2px solid #1a1a1a;
-    }
-    .card.rara {
-      background: radial-gradient(circle at center, #222222 0%, #0d0d0d 100%);
-      border: 2px solid #050505;
-    }
-    .card.ultra-rara {
-      background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
-      background-size: 400% 400%;
-      animation: rainbowFoil 8s ease infinite;
-      border: 2px solid #fff;
-    }
-    @keyframes rainbowFoil {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .card.ultra-rara::after {
-      content: "";
-      position: absolute;
-      top: -50%; left: -50%; width: 200%; height: 200%;
-      background: linear-gradient(0deg, transparent, rgba(255,255,255,0.3), transparent);
-      transform: rotate(30deg);
-      animation: shineOverlay 3s linear infinite;
-      pointer-events: none;
-      z-index: 12;
-    }
-    @keyframes shineOverlay {
-      0% { transform: translateY(-100%) rotate(30deg); }
-      100% { transform: translateY(100%) rotate(30deg); }
-    }
-
-    .card.leggendaria {
-      background: radial-gradient(circle at center, #fff2b2 0%, #d4af37 60%, #856508 100%);
-      border: 2px solid #3b2c02;
-      box-shadow: 0 0 20px #ffdf00, inset 0 0 15px rgba(255,215,0,0.9);
-      animation: legendaryPulse 2s infinite alternate ease-in-out;
-    }
-    @keyframes legendaryPulse {
-      0% { box-shadow: 0 0 10px #ffcc00; }
-      100% { box-shadow: 0 0 30px #00ffff, 0 0 40px #ff00ff; }
-    }
-
     .card-glow-reveal {
       animation: cardGlowFade 2s ease-out forwards;
     }
@@ -245,6 +194,15 @@
       0% { filter: brightness(2.6) drop-shadow(0 0 25px #ffffff); }
       50% { filter: brightness(1.4) drop-shadow(0 0 12px #ffcc00); }
       100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
+    }
+
+    .card.legendary-shiny {
+      box-shadow: 0 0 20px #ffdf00, inset 0 0 15px rgba(255,215,0,0.9);
+      animation: legendaryPulse 2s infinite alternate ease-in-out;
+    }
+    @keyframes legendaryPulse {
+      0% { box-shadow: 0 0 10px #ffcc00; }
+      100% { box-shadow: 0 0 30px #00ffff, 0 0 40px #ff00ff; }
     }
 
     #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
@@ -414,48 +372,642 @@
       try {
         initAudio();
         const now = audioCtx.currentTime;
+
         const masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(0.8, now);
         masterGain.connect(audioCtx.destination);
-        // ... logica audio esistente del progetto ...
-      } catch(e) { console.error(e); }
+
+        if (type === 'gb_boot') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.setValueAtTime(880.00, now + 0.08);
+          
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.setValueAtTime(0.4, now + 0.3);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else if (type === 'start') {
+          [130.81, 196.00, 261.63, 392.00, 523.25].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + i * 0.04);
+            gain.gain.setValueAtTime(0.3, now + i * 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start(now + i * 0.04);
+            osc.stop(now + 0.7);
+          });
+        } else if (type === 'laser') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+          
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(80, now + 0.45);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(4000, now);
+
+          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGain);
+          
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'off') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch(e) {}
     }
 
-    function showScreen(screenId) {
+    async function resetStreakTo1() {
+      try {
+        await _supabase.from('user_state').update({ streak_day: 1, months_completed: 0 }).eq('id', 1);
+        alert('Streak resettata al Giorno 1!');
+      } catch(e) {
+        alert('Errore: ' + e.message);
+      }
+    }
+
+    let isDrawingLaser = false;
+    let laserPoints = [];
+    let packSliced = false;
+    let dragObj = null;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragType = '';
+    let startXPoint = 0;
+    let startYPoint = 0;
+
+    function setupLaserCanvas() {
+      const canvas = document.getElementById('laser-canvas');
+      const pack = document.getElementById('booster-pack');
+      canvas.width = pack.offsetWidth;
+      canvas.height = pack.offsetHeight;
+    }
+
+    document.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchstart', handleStart, {passive: false});
+    document.addEventListener('touchmove', handleMove, {passive: false});
+    document.addEventListener('touchend', handleEnd);
+
+    function handleStart(e) {
+      const pack = document.getElementById('booster-pack');
+      const cardTarget = e.target.closest('.card-wrapper');
+
+      if (cardTarget && !cardTarget.classList.contains('card-swiped')) {
+        dragType = 'card';
+        dragObj = cardTarget;
+        dragObj.classList.add('dragging');
+        dragObj.classList.remove('snap-back');
+        dragStartX = e.clientX || e.touches[0].clientX;
+        dragStartY = e.clientY || e.touches[0].clientY;
+        return;
+      }
+
+      const rect = pack.getBoundingClientRect();
+      let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
+      let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+
+      if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
+        isDrawingLaser = true;
+        startXPoint = clientX - rect.left;
+        startYPoint = clientY - rect.top;
+        laserPoints = [{ x: startXPoint, y: startYPoint }];
+        playHighVolumeSound('laser');
+      }
+    }
+
+    function handleMove(e) {
+      if (e.cancelable && (isDrawingLaser || dragObj)) e.preventDefault();
+      
+      if (isDrawingLaser && !packSliced) {
+        const pack = document.getElementById('booster-pack');
+        const rect = pack.getBoundingClientRect();
+        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+
+        if (clientX !== null && clientY !== null) {
+          let currentLocalX = clientX - rect.left;
+          let currentLocalY = clientY - rect.top;
+          laserPoints.push({ x: currentLocalX, y: currentLocalY });
+          drawLightningTrail();
+
+          let distanceX = Math.abs(currentLocalX - startXPoint);
+          let distanceY = Math.abs(currentLocalY - startYPoint);
+          
+          // Impostato al 90% della larghezza della busta
+          if (distanceX >= rect.width * 0.9 || distanceY >= rect.height * 0.9) {
+            packSliced = true;
+            isDrawingLaser = false;
+            pack.classList.add('sliced-open');
+            playHighVolumeSound('laser');
+
+            setTimeout(() => {
+              document.getElementById('booster-container').style.display = 'none';
+              document.getElementById('cards-area').style.display = 'flex';
+              clearLaserCanvas();
+            }, 700);
+          }
+        }
+      } else if (dragType === 'card' && dragObj) {
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+        if (clientY !== null) {
+          let dy = clientY - dragStartY;
+          if (dy > 0) dy = 0;
+          dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
+        }
+      }
+    }
+
+    function handleEnd(e) {
+      if (isDrawingLaser) {
+        isDrawingLaser = false;
+        clearLaserCanvas();
+      }
+      if (dragType === 'card' && dragObj) {
+        dragObj.classList.remove('dragging');
+        let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        let dy = clientY - dragStartY;
+
+        if (dy < -80) {
+          dragObj.style.transform = '';
+          performSwipe(dragObj);
+        } else {
+          dragObj.classList.add('snap-back');
+          dragObj.style.transform = 'translateY(0px) rotate(0deg)';
+        }
+        dragObj = null;
+        dragType = '';
+      }
+    }
+
+    function drawLightningTrail() {
+      const canvas = document.getElementById('laser-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (laserPoints.length < 2) return;
+
+      ctx.beginPath();
+      ctx.moveTo(laserPoints[0].x, laserPoints[0].y);
+      
+      for (let i = 1; i < laserPoints.length; i++) {
+        let p = laserPoints[i];
+        let jitterX = p.x + (Math.random() * 8 - 4);
+        let jitterY = p.y + (Math.random() * 8 - 4);
+        ctx.lineTo(jitterX, jitterY);
+      }
+      
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 20;
+      ctx.stroke();
+
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function clearLaserCanvas() {
+      const canvas = document.getElementById('laser-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      laserPoints = [];
+    }
+
+    let userData = null;
+    let drawnCards = [];
+    let sessionSummary = [];
+    let cardsSwipedCount = 0;
+    
+    let cutsceneData = null;
+    let cutsceneTimer = null;
+    let cutsceneTime = 0;
+    let isDialogueActive = false;
+    let triggeredEvents = new Set();
+
+    function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(screenId).classList.add('active');
+      document.getElementById(id).classList.add('active');
     }
 
-    function saveProfileAndGoToPart1() {
+    async function saveProfileAndGoToPart1() {
+      const uName = document.getElementById('login-username').value.trim() || 'Rosso';
+      const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico';
+      try {
+        await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
+      } catch(e) {}
       showScreen('part1');
     }
 
     function startApp() {
+      playHighVolumeSound('gb_boot');
+      const p2 = document.getElementById('part2');
+      showScreen('part2');
+      p2.classList.add('turning-on');
+      setTimeout(() => { 
+        p2.classList.remove('turning-on');
+        checkAndGoToPart3(); 
+      }, 1500);
+    }
+
+    async function checkAndGoToPart3() {
       showScreen('part3');
+      
+      try {
+        const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+        userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
+      } catch(e) {
+        userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
+      }
+
+      document.getElementById('val-streak').innerText = userData.streak_day;
+      document.getElementById('val-months').innerText = userData.months_completed;
+      document.getElementById('val-dolls').innerText = userData.dolls_count;
+      document.getElementById('val-dust').innerText = userData.dust_count;
+
+      const fileName = `cutscenes/giorno${userData.streak_day}.json`;
+      try {
+        const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
+        const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
+        if (response.ok) cutsceneData = await response.json();
+        else cutsceneData = null;
+      } catch(e) {
+        cutsceneData = null;
+      }
+
+      if (!cutsceneData) {
+        cutsceneData = {
+          background: '',
+          music: '',
+          actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
+          events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
+        };
+      }
+
+      startCutscenePlayback();
+    }
+
+    function startCutscenePlayback() {
+      const bgEl = document.getElementById('cutscene-bg');
+      const audioEl = document.getElementById('gb-music');
+      const spritesLayer = document.getElementById('sprites-layer');
+
+      spritesLayer.innerHTML = '';
+      triggeredEvents.clear();
+      cutsceneTime = 0;
+      isDialogueActive = false;
+
+      if (cutsceneData.background) {
+        bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
+      } else {
+        bgEl.style.backgroundImage = 'none';
+      }
+
+      if (cutsceneData.music) {
+        audioEl.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
+        audioEl.play().catch(() => {});
+      } else {
+        audioEl.pause();
+      }
+
+      const stage = document.getElementById('screen-wrapper');
+      const baseWidth = 480;
+      const baseHeight = 270;
+      const currentWidth = stage.clientWidth || 480;
+      const currentHeight = stage.clientHeight || 270;
+      const scaleX = currentWidth / baseWidth;
+      const scaleY = currentHeight / baseHeight;
+
+      const actorElements = {};
+      const actorCurrentPos = {};
+
+      (cutsceneData.actors || []).forEach(actor => {
+        const img = document.createElement('img');
+        img.className = 'actor-sprite';
+        img.id = `actor-sprite-${actor.id}`;
+        
+        let assetUrl = userData.avatar_url;
+        if (actor.asset) {
+          if (actor.asset.startsWith('http')) {
+            assetUrl = actor.asset;
+          } else {
+            assetUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
+          }
+        }
+        img.src = assetUrl;
+
+        const startX = actor.pos ? actor.pos[0] : 100;
+        const startY = actor.pos ? actor.pos[1] : 100;
+        actorCurrentPos[actor.id] = { x: startX, y: startY };
+
+        img.style.left = `${startX * scaleX}px`;
+        img.style.top = `${startY * scaleY}px`;
+        img.style.width = `${48 * scaleX}px`;
+        img.style.height = `${48 * scaleY}px`;
+        spritesLayer.appendChild(img);
+        actorElements[actor.id] = img;
+      });
+
+      if (cutsceneTimer) clearInterval(cutsceneTimer);
+
+      cutsceneTimer = setInterval(() => {
+        if (isDialogueActive) return;
+
+        (cutsceneData.events || []).forEach(ev => {
+          if (ev.type === 'move') {
+            const elapsed = cutsceneTime - ev.start;
+            if (elapsed >= 0 && elapsed <= ev.duration) {
+              const progress = Math.min(elapsed / ev.duration, 1.0);
+              const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === ev.actor.toLowerCase() || k === ev.actor);
+              if (targetActorKey && ev.from && ev.to) {
+                const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
+                const currentY = ev.from[1] + (ev.to[1] - ev.from[1]) * progress;
+                actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
+                
+                const el = actorElements[targetActorKey];
+                el.style.left = `${currentX * scaleX}px`;
+                el.style.top = `${currentY * scaleY}px`;
+              }
+            }
+          }
+
+          if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
+            if (ev.type === 'dialogue') {
+              triggeredEvents.add(ev.id);
+              isDialogueActive = true;
+              document.getElementById('speaker-name').innerText = ev.speaker;
+              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Allenatore');
+              document.getElementById('dialogue-box').style.display = 'block';
+            }
+          }
+        });
+
+        cutsceneTime += 0.05;
+        if (cutsceneTime >= 10.0) {
+          clearInterval(cutsceneTimer);
+          document.getElementById('gb-music').pause();
+          goToPart4();
+        }
+      }, 50);
     }
 
     function handleCutsceneClick() {
-      showScreen('part4');
+      if (isDialogueActive) {
+        document.getElementById('dialogue-box').style.display = 'none';
+        isDialogueActive = false;
+      }
     }
 
-    function openAlbum() {
-      showScreen('part-album');
+    async function goToPart4() {
+      showScreen('part4');
+      
+      document.getElementById('booster-container').style.display = 'flex';
+      document.getElementById('cards-area').style.display = 'none';
+      document.getElementById('part4-summary').style.display = 'none';
+      
+      const pack = document.getElementById('booster-pack');
+      pack.classList.remove('sliced-open');
+      packSliced = false;
+      setTimeout(setupLaserCanvas, 50);
+
+      const container = document.getElementById('cards-stack');
+      container.innerHTML = '';
+      cardsSwipedCount = 0;
+
+      let allCards = [];
+      let ownedIds = [];
+
+      try {
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if (cData) allCards = cData;
+        if (iData) ownedIds = iData.map(i => i.card_id);
+      } catch(e) {}
+
+      if (allCards.length === 0) {
+        allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+      }
+
+      const cardsByRarity = {
+        'Comune': allCards.filter(c => c.rarity === 'Comune'),
+        'Rara': allCards.filter(c => c.rarity === 'Rara'),
+        'Epica': allCards.filter(c => c.rarity === 'Epica'),
+        'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
+      };
+
+      function getRandomCardByRarity() {
+        if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
+          return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
+        }
+        const rand = Math.random() * 100;
+        let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
+        let pool = cardsByRarity[targetRarity];
+        if (!pool || pool.length === 0) pool = allCards;
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      drawnCards = [];
+      for (let i = 0; i < 4; i++) {
+        const randomCard = getRandomCardByRarity();
+        const isDuplicate = ownedIds.includes(randomCard.id);
+        drawnCards.push({ ...randomCard, isDuplicate });
+      }
+
+      drawnCards.forEach((card, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+        wrapper.style.zIndex = 4 - index; 
+        
+        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
+        let legendaryClass = card.rarity === 'Leggendaria' ? ' legendary-shiny' : '';
+
+        wrapper.innerHTML = `
+          <div class="card card-glow-reveal${legendaryClass}">
+            <div class="card-frame-overlay"></div>
+            <img src="${card.image_url}" alt="card">
+            <div class="card-title">${card.name}</div>
+            <div class="card-rarity">${card.rarity}</div>
+            ${dupHTML}
+          </div>
+        `;
+        container.appendChild(wrapper);
+      });
+    }
+
+    function generateFireflies() {
+      const container = document.getElementById('sparkles-container');
+      container.innerHTML = '';
+      for (let i = 0; i < 25; i++) {
+        const f = document.createElement('div');
+        f.className = 'firefly';
+        f.style.left = (40 + Math.random() * 20) + '%';
+        f.style.top = (40 + Math.random() * 20) + '%';
+        f.style.setProperty('--tx', (Math.random() * 250 - 125) + 'px');
+        f.style.setProperty('--ty', (Math.random() * 250 - 125) + 'px');
+        f.style.animationDelay = (Math.random() * 0.5) + 's';
+        container.appendChild(f);
+      }
+    }
+
+    function performSwipe(wrapper) {
+      if (wrapper.classList.contains('card-swiped')) return;
+      playHighVolumeSound('laser');
+      generateFireflies();
+      wrapper.classList.add('card-swiped');
+      cardsSwipedCount++;
+
+      if (cardsSwipedCount === 4) {
+        setTimeout(() => {
+          document.getElementById('cards-area').style.display = 'none';
+          showPart4Summary();
+        }, 600);
+      }
+    }
+
+    async function showPart4Summary() {
+      const summaryArea = document.getElementById('part4-summary');
+      const tbody = document.getElementById('part4-summary-body');
+      tbody.innerHTML = '';
+
+      let inventory = [];
+      try {
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if (iData) inventory = iData;
+      } catch(e) {}
+
+      const counts = {};
+      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+
+      const tempCounts = { ...counts };
+      drawnCards.forEach(card => {
+        if (!card.isDuplicate) tempCounts[card.id] = (tempCounts[card.id] || 0) + 1;
+      });
+
+      drawnCards.forEach(card => {
+        let note = card.isDuplicate ? '+10 Polvere' : 'Nuova!';
+        let color = card.isDuplicate ? '#8b0000' : '#2e8b57';
+        let totalQty = tempCounts[card.id] || 1;
+        
+        tbody.innerHTML += `
+          <tr>
+            <td>${card.name}</td>
+            <td>${card.rarity}</td>
+            <td><b>${totalQty}</b></td>
+            <td style="color: ${color}; font-weight: bold; font-size: 6px;">${note}</td>
+          </tr>
+        `;
+      });
+
+      summaryArea.style.display = 'block';
+    }
+
+    async function finalizePackAndGoToPart5() {
+      for (const card of drawnCards) {
+        if (card.isDuplicate) {
+          userData.dust_count += 10;
+          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
+        } else {
+          try {
+            await _supabase.from('user_inventory').insert({ card_id: card.id });
+          } catch(e) {}
+          sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
+        }
+      }
+
+      let nextDay = userData.streak_day + 1;
+      let nextMonths = userData.months_completed;
+      if (userData.streak_day >= 30) {
+        nextDay = 1;
+        nextMonths += 1;
+        sessionSummary.push("Mese completato!");
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      try {
+        await _supabase.from('user_state').update({
+          streak_day: nextDay,
+          months_completed: nextMonths,
+          dolls_count: userData.dolls_count,
+          dust_count: userData.dust_count,
+          last_claim_date: today
+        }).eq('id', 1);
+      } catch(e) {}
+
+      document.getElementById('summary-content').innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
+      showScreen('part5');
     }
 
     function turnOff() {
-      showScreen('part6');
+      playHighVolumeSound('off');
+      showScreen('part2');
+      setTimeout(() => { showScreen('part6'); }, 1200);
     }
 
     function restart() {
+      sessionSummary = [];
+      forcedRarity = null;
       showScreen('part0');
     }
 
-    function resetStreakTo1() {
-      alert('Streak resettata a 1 (Simulazione)');
-    }
+    async function openAlbum() {
+      showScreen('part-album');
+      document.getElementById('excel-dust').innerText = userData ? userData.dust_count : 0;
 
-    function finalizePackAndGoToPart5() {
-      showScreen('part5');
+      let cards = [];
+      let inventory = [];
+      try {
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if(cData) cards = cData;
+        if(iData) inventory = iData;
+      } catch(e) {}
+
+      const counts = {};
+      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+
+      const tbody = document.getElementById('excel-table-body');
+      tbody.innerHTML = '';
+
+      cards.forEach(card => {
+        const qty = counts[card.id] || 0;
+        tbody.innerHTML += `
+          <tr>
+            <td>${card.id}</td>
+            <td>${card.name}</td>
+            <td>${card.rarity}</td>
+            <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
+          </tr>
+        `;
+      });
     }
   </script>
 </body>
