@@ -1,87 +1,479 @@
-async function goToPart4() {
-  showScreen('part4');
-  const container = document.getElementById('cards-stack');
-  container.innerHTML = '';
-  cardsSwipedCount = 0;
-  document.getElementById('btn-to-part5').style.display = 'none';
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gioco Retro Card</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    #gameboy-frame {
+      width: 100vw;
+      height: 100vh;
+      max-width: 420px;
+      max-height: 840px;
+      background-color: #cc0000;
+      border: 4px solid #880000;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    @media (max-width: 480px), (max-height: 850px) {
+      #gameboy-frame {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+      }
+    }
+    #screen-viewport {
+      width: 100%;
+      height: 65%;
+      background-color: #9bbc0f;
+      border: 4px solid #0f380f;
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      color: #0f380f;
+      text-align: center;
+    }
+    .screen.active {
+      display: flex;
+    }
+    #controls {
+      width: 100%;
+      height: 30%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 10px;
+    }
+    #dpad {
+      width: 90px;
+      height: 90px;
+      position: relative;
+    }
+    .dbtn {
+      position: absolute;
+      background-color: #222;
+      border: 1px solid #000;
+    }
+    #d-up { top: 0; left: 30px; width: 30px; height: 30px; }
+    #d-down { bottom: 0; left: 30px; width: 30px; height: 30px; }
+    #d-left { top: 30px; left: 0; width: 30px; height: 30px; }
+    #d-right { top: 30px; right: 0; width: 30px; height: 30px; }
+    #d-center { top: 30px; left: 30px; width: 30px; height: 30px; background-color: #222; }
+    #ab-buttons {
+      display: flex;
+      gap: 15px;
+      transform: rotate(-15deg);
+    }
+    .abtn {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background-color: #8b0000;
+      color: white;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 2px 2px 0px #000;
+      cursor: pointer;
+    }
+    .abtn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #000;
+    }
+    .retro-btn {
+      background-color: #8bac0f;
+      border: 2px solid #0f380f;
+      color: #0f380f;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-weight: bold;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+    .retro-btn:active {
+      background-color: #306230;
+      color: #9bbc0f;
+    }
+    #cutscene-img {
+      width: 80%;
+      height: 45%;
+      border: 2px solid #0f380f;
+      object-fit: cover;
+      margin-bottom: 8px;
+    }
+    #cutscene-text {
+      font-size: 11px;
+      height: 35%;
+      overflow-y: auto;
+    }
+    #pack {
+      width: 100px;
+      height: 140px;
+      background-color: #306230;
+      border: 3px dashed #0f380f;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #9bbc0f;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #cards-stack {
+      position: relative;
+      width: 130px;
+      height: 180px;
+    }
+    .card-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .card {
+      width: 100%;
+      height: 100%;
+      background-color: #8bac0f;
+      border: 3px solid #0f380f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    .card img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border: 1px solid #0f380f;
+    }
+    .card-title { font-size: 10px; font-weight: bold; margin-bottom: 4px; }
+    .card-rarity { font-size: 9px; margin-top: 4px; }
+    .duplicate-tag {
+      background-color: #0f380f;
+      color: #9bbc0f;
+      font-size: 8px;
+      padding: 2px;
+      margin-top: 2px;
+    }
+    #album-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      width: 100%;
+      height: 80%;
+      overflow-y: auto;
+    }
+    .album-slot {
+      border: 1px solid #0f380f;
+      padding: 4px;
+      font-size: 9px;
+      min-height: 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #8bac0f;
+    }
+    .album-slot.missing {
+      opacity: 0.4;
+      background-color: transparent;
+    }
+  </style>
+</head>
+<body>
 
-  let allCards = [];
-  let ownedIds = [];
+  <div id="gameboy-frame">
+    <div id="screen-viewport">
+      
+      <!-- PARTE 1: LOGIN -->
+      <div id="part1" class="screen active">
+        <h3 style="margin-bottom: 10px;">RETRO CARD</h3>
+        <input type="text" id="username" placeholder="Username" style="margin-bottom: 5px; padding: 4px;">
+        <input type="password" id="password" placeholder="Password" style="margin-bottom: 10px; padding: 4px;">
+        <button class="retro-btn" onclick="handleLogin()">ENTRA</button>
+      </div>
 
-  try {
-    const { data: cData } = await _supabase.from('cards').select('*');
-    const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-    if(cData) allCards = cData;
-    if(iData) ownedIds = iData.map(i => i.card_id);
-  } catch(e) {}
+      <!-- PARTE 2: CUTSCENE -->
+      <div id="part2" class="screen">
+        <img id="cutscene-img" src="" alt="cutscene">
+        <div id="cutscene-text">Caricamento...</div>
+        <button class="retro-btn" onclick="goToPart3()">AVANTI</button>
+      </div>
 
-  if (allCards.length === 0) {
-    allCards = [{ id: 1, name: 'Carta Prova', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
-  }
+      <!-- PARTE 3: SBUSTAMENTO -->
+      <div id="part3" class="screen">
+        <p style="margin-bottom: 10px; font-size: 12px;">Tocca la bustina!</p>
+        <div id="pack" onclick="goToPart4()">BUSTINA</div>
+      </div>
 
-  // Raggruppa le carte per rarità
-  const cardsByRarity = {
-    'Comune': allCards.filter(c => c.rarity === 'Comune'),
-    'Rara': allCards.filter(c => c.rarity === 'Rara'),
-    'Epica': allCards.filter(c => c.rarity === 'Epica'),
-    'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
-  };
+      <!-- PARTE 4: SWIPE CARTE -->
+      <div id="part4" class="screen">
+        <div id="cards-stack"></div>
+        <button id="btn-to-part5" class="retro-btn" style="display:none;" onclick="goToPart5()">ALBUM</button>
+      </div>
 
-  // Funzione per estrarre una carta in base alle percentuali
-  function getRandomCardByRarity() {
-    const rand = Math.random() * 100; // Numero casuale tra 0 e 100
-    let targetRarity = 'Comune';
+      <!-- PARTE 5: ALBUM E STATS -->
+      <div id="part5" class="screen">
+        <div style="font-size: 10px; margin-bottom: 4px;">
+          Polvere: <span id="dust-count">0</span> | Bambole: <span id="dolls-count">0</span>
+        </div>
+        <div id="album-grid"></div>
+        <button class="retro-btn" onclick="showScreen('part3')" style="margin-top: 4px;">HOME</button>
+      </div>
 
-    if (rand < 5) {
-      targetRarity = 'Leggendaria'; // 5% chance
-    } else if (rand < 15) {
-      targetRarity = 'Epica';       // 10% chance
-    } else if (rand < 40) {
-      targetRarity = 'Rara';        // 25% chance
-    } else {
-      targetRarity = 'Comune';      // 60% chance
+    </div>
+
+    <div id="controls">
+      <div id="dpad">
+        <div class="dbtn" id="d-up"></div>
+        <div class="dbtn" id="d-down"></div>
+        <div class="dbtn" id="d-left"></div>
+        <div class="dbtn" id="d-right"></div>
+        <div id="d-center"></div>
+      </div>
+      <div id="ab-buttons">
+        <div class="abtn" id="btn-b">B</div>
+        <div class="abtn" id="btn-a">A</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_KEY';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let userProfile = null;
+    let drawnCards = [];
+    let cardsSwipedCount = 0;
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
     }
 
-    // Se non ci sono carte per quella rarità, prende una lista di ripiego
-    let pool = cardsByRarity[targetRarity];
-    if (!pool || pool.length === 0) pool = allCards;
+    async function handleLogin() {
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      
+      if (!u || !p) return alert("Inserisci credenziali!");
 
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
+      try {
+        let { data, error } = await _supabase.from('users').select('*').eq('username', u).single();
+        
+        if (!data) {
+          const res = await _supabase.from('users').insert([{ username: u, password: p }]).select().single();
+          data = res.data;
+        } else if (data.password !== p) {
+          return alert("Password errata!");
+        }
 
-  drawnCards = [];
-  for (let i = 0; i < 4; i++) {
-    const randomCard = getRandomCardByRarity();
-    const isDuplicate = ownedIds.includes(randomCard.id);
-    drawnCards.push({ ...randomCard, isDuplicate });
-  }
+        currentUser = data;
+        loadProfileAndStart();
+      } catch (e) {
+        alert("Errore di connessione!");
+      }
+    }
 
-  drawnCards.forEach((card, index) => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'card-wrapper';
-    wrapper.style.zIndex = 4 - index;
-    
-    let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE (+10 Polvere)</div>` : '';
+    async function loadProfileAndStart() {
+      const { data } = await _supabase.from('profiles').select('*').eq('user_id', currentUser.id).single();
+      if (!data) {
+        const res = await _supabase.from('profiles').insert([{ user_id: currentUser.id, current_day: 1, dust: 0, pokebambole: 0 }]).select().single();
+        userProfile = res.data;
+      } else {
+        userProfile = data;
+      }
+      goToPart2();
+    }
 
-    wrapper.innerHTML = `
-      <div class="card">
-        <div class="card-title">${card.name}</div>
-        <img src="${card.image_url}" alt="card">
-        <div class="card-rarity">${card.rarity}</div>
-        ${dupHTML}
-      </div>
-    `;
+    async function goToPart2() {
+      showScreen('part2');
+      let day = userProfile.current_day || 1;
+      let { data } = await _supabase.from('cutscenes').select('*').eq('day', day).single();
 
-    let startY = 0;
-    wrapper.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
-    wrapper.addEventListener('touchend', e => {
-      if (startY - e.changedTouches[0].clientY > 30) performSwipe(wrapper);
-    });
-    wrapper.addEventListener('mousedown', e => { startY = e.clientY; });
-    wrapper.addEventListener('mouseup', e => {
-      if (startY - e.clientY > 30) performSwipe(wrapper);
-    });
+      if (!data) {
+        data = { image_url: 'https://picsum.photos/200/150', text_content: 'Giorno ' + day + ': La tua avventura continua!' };
+      }
 
-    container.appendChild(wrapper);
-  });
-}
+      document.getElementById('cutscene-img').src = data.image_url;
+      document.getElementById('cutscene-text').innerText = data.text_content;
+    }
+
+    function goToPart3() {
+      showScreen('part3');
+    }
+
+    async function goToPart4() {
+      showScreen('part4');
+      const container = document.getElementById('cards-stack');
+      container.innerHTML = '';
+      cardsSwipedCount = 0;
+      document.getElementById('btn-to-part5').style.display = 'none';
+
+      let allCards = [];
+      let ownedIds = [];
+
+      try {
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id').eq('user_id', currentUser.id);
+        if(cData) allCards = cData;
+        if(iData) ownedIds = iData.map(i => i.card_id);
+      } catch(e) {}
+
+      if (allCards.length === 0) {
+        allCards = [{ id: 1, name: 'Carta Prova', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+      }
+
+      const cardsByRarity = {
+        'Comune': allCards.filter(c => c.rarity === 'Comune'),
+        'Rara': allCards.filter(c => c.rarity === 'Rara'),
+        'Epica': allCards.filter(c => c.rarity === 'Epica'),
+        'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
+      };
+
+      function getRandomCardByRarity() {
+        const rand = Math.random() * 100;
+        let targetRarity = 'Comune';
+
+        if (rand < 5) targetRarity = 'Leggendaria';
+        else if (rand < 15) targetRarity = 'Epica';
+        else if (rand < 40) targetRarity = 'Rara';
+        else targetRarity = 'Comune';
+
+        let pool = cardsByRarity[targetRarity];
+        if (!pool || pool.length === 0) pool = allCards;
+
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      drawnCards = [];
+      for (let i = 0; i < 4; i++) {
+        const randomCard = getRandomCardByRarity();
+        const isDuplicate = ownedIds.includes(randomCard.id);
+        drawnCards.push({ ...randomCard, isDuplicate });
+      }
+
+      drawnCards.forEach((card, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+        wrapper.style.zIndex = 4 - index;
+        
+        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE (+10 Polvere)</div>` : '';
+
+        wrapper.innerHTML = `
+          <div class="card">
+            <div class="card-title">${card.name}</div>
+            <img src="${card.image_url}" alt="card">
+            <div class="card-rarity">${card.rarity}</div>
+            ${dupHTML}
+          </div>
+        `;
+
+        let startY = 0;
+        wrapper.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+        wrapper.addEventListener('touchend', e => {
+          if (startY - e.changedTouches[0].clientY > 30) performSwipe(wrapper);
+        });
+        wrapper.addEventListener('mousedown', e => { startY = e.clientY; });
+        wrapper.addEventListener('mouseup', e => {
+          if (startY - e.clientY > 30) performSwipe(wrapper);
+        });
+
+        container.appendChild(wrapper);
+      });
+    }
+
+    async function performSwipe(el) {
+      if (el.dataset.swiped) return;
+      el.dataset.swiped = "true";
+      el.style.transform = 'translateY(-150%)';
+      el.style.opacity = '0';
+
+      const cardData = drawnCards[cardsSwipedCount];
+      cardsSwipedCount++;
+
+      if (cardData.isDuplicate) {
+        userProfile.dust += 10;
+        await _supabase.from('profiles').update({ dust: userProfile.dust }).eq('user_id', currentUser.id);
+      } else {
+        await _supabase.from('user_inventory').insert([{ user_id: currentUser.id, card_id: cardData.id }]);
+      }
+
+      if (cardsSwipedCount === 4) {
+        userProfile.current_day += 1;
+        await _supabase.from('profiles').update({ current_day: userProfile.current_day }).eq('user_id', currentUser.id);
+        document.getElementById('btn-to-part5').style.display = 'block';
+      }
+    }
+
+    async function goToPart5() {
+      showScreen('part5');
+      document.getElementById('dust-count').innerText = userProfile.dust;
+      document.getElementById('dolls-count').innerText = userProfile.pokebambole;
+
+      const grid = document.getElementById('album-grid');
+      grid.innerHTML = 'Caricamento...';
+
+      const { data: allCards } = await _supabase.from('cards').select('*');
+      const { data: inventory } = await _supabase.from('user_inventory').select('card_id').eq('user_id', currentUser.id);
+
+      const ownedSet = new Set(inventory ? inventory.map(i => i.card_id) : []);
+      grid.innerHTML = '';
+
+      if (allCards) {
+        allCards.forEach(c => {
+          const slot = document.createElement('div');
+          const isOwned = ownedSet.has(c.id);
+          slot.className = `album-slot ${isOwned ? '' : 'missing'}`;
+          slot.innerHTML = `
+            <div><b>${c.name}</b></div>
+            <div>${isOwned ? c.rarity : '???'}</div>
+          `;
+          grid.appendChild(slot);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
