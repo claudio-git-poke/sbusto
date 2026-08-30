@@ -80,17 +80,17 @@
 
     .gb-screen { background: #2c221e; color: #f4e8c1; }
 
-    /* --- BUSTINA 3D SHINY (CONFINATO PERFETTAMENTE) --- */
+    /* --- BUSTINA 3D SHINY --- */
     #booster-container {
       perspective: 1000px;
+      position: relative;
     }
     .booster-pack {
       width: 130px; height: 185px; 
       background: linear-gradient(135deg, #222 0%, #444 30%, #b8860b 50%, #111 80%, #000 100%);
-      border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: grab; display: flex;
+      border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: crosshair; display: flex;
       flex-direction: column; box-shadow: 0 12px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.6); 
-      transform-style: preserve-3d; transition: transform 0.1s; touch-action: none;
-      overflow: hidden; /* FONDAMENTALE: Mantiene lo shiny dentro i bordi della busta */
+      overflow: hidden; touch-action: none;
     }
     .booster-shine {
       position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
@@ -114,28 +114,19 @@
       width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700);
     }
 
-    /* Animazione Taglio Spada Laser Lento e Drammatico */
-    .booster-pack.laser-sliced {
-      animation: laserCut 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    /* Canvas per il raggio laser interattivo */
+    #laser-canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50;
     }
-    @keyframes laserCut {
-      0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-      20% { transform: scale(1.05) rotate(-2deg); filter: brightness(2) drop-shadow(0 0 25px #00ffff); }
-      40% { transform: scale(1.02) rotate(5deg); clip-path: polygon(0 0, 100% 15%, 85% 100%, 0 85%); filter: brightness(3); }
-      100% { transform: translateY(140px) rotate(20deg) scale(0.9); opacity: 0; }
+
+    /* Effetto Strappo Finale Busta */
+    .booster-pack.sliced-open {
+      animation: packOpenAnim 0.8s ease-out forwards;
     }
-    
-    /* Effetto fascio di luce plasma/spada laser sullo schermo */
-    .laser-slash-effect {
-      position: absolute; top: 0; left: -100%; width: 300%; height: 100%;
-      background: linear-gradient(135deg, transparent 46%, rgba(255,255,255,1) 49%, rgba(0,240,255,0.95) 50%, rgba(0,120,255,0.6) 52%, transparent 56%);
-      pointer-events: none; z-index: 100; transform: rotate(-30deg);
-      animation: laserSlashAnim 1.2s ease-out forwards;
-    }
-    @keyframes laserSlashAnim {
-      0% { transform: translate(-60%, -60%) rotate(-30deg); opacity: 0; }
-      20% { opacity: 1; filter: drop-shadow(0 0 15px #00ffff); }
-      100% { transform: translate(60%, 60%) rotate(-30deg); opacity: 0; }
+    @keyframes packOpenAnim {
+      0% { transform: scale(1); filter: brightness(2); }
+      50% { transform: scale(1.1) rotate(5deg); filter: brightness(3) drop-shadow(0 0 20px #00ffff); }
+      100% { transform: translateY(180px) scale(0.6) rotate(25deg); opacity: 0; }
     }
 
     /* --- LUCCIOLE E BAGLIORE DI APERTURA --- */
@@ -159,7 +150,7 @@
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    /* --- STILE CARTE ANTICHE, CONSUMATE & GEROGLIFICI UNOWN --- */
+    /* --- STILE CARTE ANTICHE & UNOWN --- */
     .card { 
       width: 100%; height: 100%; 
       background: linear-gradient(135deg, #c8b183 0%, #b89762 60%, #9e7b4b 100%); 
@@ -168,7 +159,6 @@
       pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.7), inset 0 0 12px rgba(40,20,5,0.6);
       position: relative;
     }
-    /* Effetto usura/graffi e geroglifici Unown sui bordi */
     .card::before {
       content: '⾕⾖⾗⾘⾙⾚';
       position: absolute; top: 2px; font-size: 5px; color: #3d2616; letter-spacing: 2px; opacity: 0.85;
@@ -183,7 +173,6 @@
     .card-rarity { font-size: 5px; background: #3d2616; color: #ffcc00; padding: 2px 5px; border-radius: 3px; }
     .duplicate-tag { font-size: 5px; color: #6b0000; font-weight: bold; }
 
-    /* Bagliore iniziale carta che sfuma lentamente */
     .card-glow-reveal {
       animation: cardGlowFade 2s ease-out forwards;
     }
@@ -193,7 +182,6 @@
       100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
     }
 
-    /* Bagliore extra intenso e super shiny per le Leggendarie */
     .card.legendary-shiny {
       border: 3px solid #ffcc00;
       box-shadow: 0 0 18px #ffdf00, inset 0 0 15px rgba(255,215,0,0.8);
@@ -225,7 +213,6 @@
       object-fit: contain; 
     }
 
-    /* --- PANNELLO TEST / DEBUG --- */
     #debug-panel {
       position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #ffd700;
       padding: 6px; border-radius: 6px; z-index: 99999; display: flex; flex-direction: column; gap: 4px;
@@ -235,12 +222,11 @@
 </head>
 <body>
 
-  <!-- PANNELLO DI PROVA / TEST ANIMAZIONI & STREAK -->
   <div id="debug-panel">
     <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL ]</div>
-    <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria per la prossima busta!');">Forza Leggendaria</button>
-    <button onclick="forcedRarity = 'Epica'; alert('Forzata Epica per la prossima busta!');">Forza Epica</button>
-    <button onclick="forcedRarity = null; alert('Filtro rarità rimosso.');">Reset Filtro</button>
+    <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria!');">Forza Leggendaria</button>
+    <button onclick="forcedRarity = 'Epica'; alert('Forzata Epica!');">Forza Epica</button>
+    <button onclick="forcedRarity = null; alert('Filtro rimosso.');">Reset Filtro</button>
     <button onclick="resetStreakTo1()" style="color: #ff4444; border-color: #ff4444;">Resetta Streak a 1</button>
   </div>
 
@@ -281,19 +267,22 @@
         <audio id="bg-music" loop></audio>
       </div>
 
-      <!-- PARTE 4: BUSTINA 3D SHINY CONFINATO & TAGLIO SPADA LASER -->
+      <!-- PARTE 4: BUSTINA CON TAGLIO LASER INTERATTIVO A TRACCIAMENTO MOUSE/DITO -->
       <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
         
         <div id="sparkles-container"></div>
 
         <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 12px; color: #ffd700;">TRASCINA A DESTRA PER IL TAGLIO LASER</div>
-          <div class="booster-pack" id="booster-pack">
-            <div class="booster-shine"></div>
-            <div class="booster-top">⚡ PLASMA</div>
-            <div class="booster-bottom">
-              <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
-              <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
+          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL TAGLIO LASER SULLA BUSTA!</div>
+          <div style="position: relative;">
+            <canvas id="laser-canvas"></canvas>
+            <div class="booster-pack" id="booster-pack">
+              <div class="booster-shine"></div>
+              <div class="booster-top">⚡ PLASMA</div>
+              <div class="booster-bottom">
+                <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
+                <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
+              </div>
             </div>
           </div>
         </div>
@@ -384,12 +373,11 @@
           osc.start(); osc.stop(audioCtx.currentTime + 0.3);
         } else if (type === 'laser') {
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.6);
-          osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 1.2);
-          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
-          osc.start(); osc.stop(audioCtx.currentTime + 1.2);
+          osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.4);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.4);
         } else if (type === 'off') {
           osc.type = 'sawtooth';
           osc.frequency.setValueAtTime(300, audioCtx.currentTime);
@@ -401,98 +389,147 @@
       } catch(e) {}
     }
 
-    /* --- FUNZIONE DI TEST PER RESET STREAK --- */
     async function resetStreakTo1() {
       try {
         await _supabase.from('user_state').update({ streak_day: 1, months_completed: 0 }).eq('id', 1);
-        alert('Streak resettata al Giorno 1 con successo!');
+        alert('Streak resettata al Giorno 1!');
       } catch(e) {
-        alert('Errore reset streak: ' + e.message);
+        alert('Errore: ' + e.message);
       }
     }
 
-    /* --- GESTIONE DRAG & TAGLIO SPADA LASER --- */
+    /* --- GESTIONE INTERATTIVA TAGLIO LASER SULLA BUSTA --- */
+    let isDrawingLaser = false;
+    let laserPoints = [];
+    let packSliced = false;
     let dragObj = null;
     let dragStartX = 0;
     let dragStartY = 0;
-    let dragType = ''; 
+    let dragType = '';
 
-    document.addEventListener('touchstart', handleDragStart, {passive: false});
-    document.addEventListener('touchmove', handleDragMove, {passive: false});
-    document.addEventListener('touchend', handleDragEnd);
-    document.addEventListener('mousedown', handleDragStart);
-    document.addEventListener('mousemove', handleDragMove);
-    document.addEventListener('mouseup', handleDragEnd);
+    function setupLaserCanvas() {
+      const canvas = document.getElementById('laser-canvas');
+      const pack = document.getElementById('booster-pack');
+      canvas.width = pack.offsetWidth;
+      canvas.height = pack.offsetHeight;
+    }
 
-    function handleDragStart(e) {
-      const target = e.target.closest('.card-wrapper') || e.target.closest('.booster-pack');
-      if (!target) return;
+    document.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchstart', handleStart, {passive: false});
+    document.addEventListener('touchmove', handleMove, {passive: false});
+    document.addEventListener('touchend', handleEnd);
 
-      if (target.classList.contains('booster-pack')) {
-        dragType = 'pack';
-        dragObj = target;
-      } else if (target.classList.contains('card-wrapper')) {
-        if (target.classList.contains('card-swiped')) return; 
+    function handleStart(e) {
+      const pack = document.getElementById('booster-pack');
+      const cardTarget = e.target.closest('.card-wrapper');
+
+      if (cardTarget && !cardTarget.classList.contains('card-swiped')) {
         dragType = 'card';
-        dragObj = target;
+        dragObj = cardTarget;
         dragObj.classList.add('dragging');
         dragObj.classList.remove('snap-back');
+        dragStartX = e.clientX || e.touches[0].clientX;
+        dragStartY = e.clientY || e.touches[0].clientY;
+        return;
       }
-      dragStartX = e.clientX || e.touches[0].clientX;
-      dragStartY = e.clientY || e.touches[0].clientY;
-    }
 
-    function handleDragMove(e) {
-      if (!dragObj) return;
-      if (e.cancelable) e.preventDefault(); 
-
+      const rect = pack.getBoundingClientRect();
       let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
       let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-      if (clientX === null || clientY === null) return;
 
-      let dx = clientX - dragStartX;
-      let dy = clientY - dragStartY;
-
-      if (dragType === 'pack') {
-        if (dx > 40) {
-          dragObj.classList.add('laser-sliced');
-          playRetroSound('laser');
-          
-          // Crea fascio di luce laser sullo schermo
-          const laser = document.createElement('div');
-          laser.className = 'laser-slash-effect';
-          document.getElementById('part4').appendChild(laser);
-          setTimeout(() => laser.remove(), 1200);
-
-          dragObj = null; 
-          setTimeout(() => {
-            document.getElementById('booster-container').style.display = 'none';
-            document.getElementById('cards-area').style.display = 'flex';
-          }, 1100);
-        }
-      } else if (dragType === 'card') {
-        if (dy > 0) dy = 0;
-        dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
+      if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
+        isDrawingLaser = true;
+        laserPoints = [{ x: clientX - rect.left, y: clientY - rect.top }];
+        playRetroSound('laser');
       }
     }
 
-    function handleDragEnd(e) {
-      if (!dragObj) return;
-      if (dragType === 'card') {
-        dragObj.classList.remove('dragging');
-        let clientY = e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : dragStartY);
-        let dy = clientY - dragStartY;
+    function handleMove(e) {
+      if (e.cancelable && (isDrawingLaser || dragObj)) e.preventDefault();
+      
+      if (isDrawingLaser && !packSliced) {
+        const pack = document.getElementById('booster-pack');
+        const rect = pack.getBoundingClientRect();
+        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
 
-        if (dy < -80) { 
-          dragObj.style.transform = ''; 
-          performSwipe(dragObj);
-        } else { 
-          dragObj.classList.add('snap-back');
-          dragObj.style.transform = `translateY(0px) rotate(0deg)`;
+        if (clientX !== null && clientY !== null) {
+          laserPoints.push({ x: clientX - rect.left, y: clientY - rect.top });
+          drawLaserTrail();
+
+          // Se il tracciato copre abbastanza distanza, esegui il taglio!
+          if (laserPoints.length > 12) {
+            packSliced = true;
+            isDrawingLaser = false;
+            pack.classList.add('sliced-open');
+            playRetroSound('laser');
+
+            setTimeout(() => {
+              document.getElementById('booster-container').style.display = 'none';
+              document.getElementById('cards-area').style.display = 'flex';
+              clearLaserCanvas();
+            }, 700);
+          }
+        }
+      } else if (dragType === 'card' && dragObj) {
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+        if (clientY !== null) {
+          let dy = clientY - dragStartY;
+          if (dy > 0) dy = 0;
+          dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
         }
       }
-      dragObj = null;
-      dragType = '';
+    }
+
+    function handleEnd(e) {
+      if (isDrawingLaser) {
+        isDrawingLaser = false;
+        clearLaserCanvas();
+      }
+      if (dragType === 'card' && dragObj) {
+        dragObj.classList.remove('dragging');
+        let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        let dy = clientY - dragStartY;
+
+        if (dy < -80) {
+          dragObj.style.transform = '';
+          performSwipe(dragObj);
+        } else {
+          dragObj.classList.add('snap-back');
+          dragObj.style.transform = 'translateY(0px) rotate(0deg)';
+        }
+        dragObj = null;
+        dragType = '';
+      }
+    }
+
+    function drawLaserTrail() {
+      const canvas = document.getElementById('laser-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (laserPoints.length < 2) return;
+
+      ctx.beginPath();
+      ctx.moveTo(laserPoints[0].x, laserPoints[0].y);
+      for (let i = 1; i < laserPoints.length; i++) {
+        ctx.lineTo(laserPoints[i].x, laserPoints[i].y);
+      }
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+    }
+
+    function clearLaserCanvas() {
+      const canvas = document.getElementById('laser-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      laserPoints = [];
     }
 
     let userData = null;
@@ -514,11 +551,9 @@
     async function saveProfileAndGoToPart1() {
       const uName = document.getElementById('login-username').value.trim() || 'Rosso';
       const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico';
-
       try {
         await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
       } catch(e) {}
-
       showScreen('part1');
     }
 
@@ -527,7 +562,6 @@
       const p2 = document.getElementById('part2');
       showScreen('part2');
       p2.classList.add('turning-on');
-      
       setTimeout(() => { 
         p2.classList.remove('turning-on');
         checkAndGoToPart3(); 
@@ -544,49 +578,17 @@
         userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
       }
 
-      const today = new Date().toISOString().split('T')[0];
-      
-      if (userData.last_claim_date) {
-        const lastDate = new Date(userData.last_claim_date);
-        const currDate = new Date(today);
-        const diffDays = Math.floor((currDate - lastDate) / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 1) {
-          if (userData.dolls_count > 0) {
-            userData.dolls_count -= 1;
-            sessionSummary.push("Giorno saltato! Usata 1 Pokebambola.");
-          } else {
-            userData.streak_day = 1;
-            sessionSummary.push("Streak resettata al Giorno 1.");
-          }
-        }
-      }
-
-      if ([7, 14, 21, 28].includes(userData.streak_day)) {
-        if (userData.dolls_count < 3) {
-          userData.dolls_count += 1;
-          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +1 Pokebambola!`);
-        } else {
-          userData.dust_count += 50;
-          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +50 Polvere (Bambole Max).`);
-        }
-      }
-
       document.getElementById('val-streak').innerText = userData.streak_day;
       document.getElementById('val-months').innerText = userData.months_completed;
       document.getElementById('val-dolls').innerText = userData.dolls_count;
       document.getElementById('val-dust').innerText = userData.dust_count;
 
-      // FIX: Carica correttamente la cutscene basata sul giorno attuale (es. giorno7.json)
       const fileName = `cutscenes/giorno${userData.streak_day}.json`;
       try {
         const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
         const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-        if (response.ok) {
-          cutsceneData = await response.json();
-        } else {
-          cutsceneData = null;
-        }
+        if (response.ok) cutsceneData = await response.json();
+        else cutsceneData = null;
       } catch(e) {
         cutsceneData = null;
       }
@@ -596,7 +598,7 @@
           background: '',
           music: '',
           actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-          events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato, ${userData.username || 'Allenatore'}!`, start: 0, duration: 3 }]
+          events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
         };
       }
 
@@ -634,13 +636,7 @@
         const img = document.createElement('img');
         img.className = 'actor-sprite';
         img.id = `actor-sprite-${actor.id}`;
-        
-        if (actor.asset) {
-          img.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
-        } else {
-          img.src = userData.avatar_url;
-        }
-
+        img.src = actor.asset ? `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}` : userData.avatar_url;
         img.style.left = `${actor.pos[0] * scaleX}px`;
         img.style.top = `${actor.pos[1] * scaleY}px`;
         img.style.width = `${48 * scaleX}px`;
@@ -650,9 +646,6 @@
 
       cutsceneTimer = setInterval(() => {
         if (isDialogueActive) return;
-
-        const currentScaleX = stage.clientWidth / 480;
-        const currentScaleY = stage.clientHeight / 270;
 
         (cutsceneData.events || []).forEach(ev => {
           if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
@@ -667,7 +660,6 @@
         });
 
         cutsceneTime += 0.05;
-
         if (cutsceneTime >= 10.0) {
           clearInterval(cutsceneTimer);
           document.getElementById('bg-music').pause();
@@ -689,8 +681,12 @@
       document.getElementById('booster-container').style.display = 'flex';
       document.getElementById('cards-area').style.display = 'none';
       document.getElementById('part4-summary').style.display = 'none';
-      document.getElementById('booster-pack').classList.remove('laser-sliced');
       
+      const pack = document.getElementById('booster-pack');
+      pack.classList.remove('sliced-open');
+      packSliced = false;
+      setTimeout(setupLaserCanvas, 50);
+
       const container = document.getElementById('cards-stack');
       container.innerHTML = '';
       cardsSwipedCount = 0;
@@ -699,11 +695,8 @@
       let ownedIds = [];
 
       try {
-        const { data: cData, error: cErr } = await _supabase.from('cards').select('*');
-        if (cErr) throw cErr;
-        const { data: iData, error: iErr } = await _supabase.from('user_inventory').select('card_id');
-        if (iErr) throw iErr;
-        
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
         if (cData) allCards = cData;
         if (iData) ownedIds = iData.map(i => i.card_id);
       } catch(e) {}
@@ -720,21 +713,11 @@
       };
 
       function getRandomCardByRarity() {
-        if (forcedRarity) {
-          let forcedPool = cardsByRarity[forcedRarity];
-          if (forcedPool && forcedPool.length > 0) {
-            return forcedPool[Math.floor(Math.random() * forcedPool.length)];
-          }
+        if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
+          return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
         }
-
         const rand = Math.random() * 100;
-        let targetRarity = 'Comune';
-
-        if (rand < 5) targetRarity = 'Leggendaria';
-        else if (rand < 15) targetRarity = 'Epica';
-        else if (rand < 40) targetRarity = 'Rara';
-        else targetRarity = 'Comune';
-
+        let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
         let pool = cardsByRarity[targetRarity];
         if (!pool || pool.length === 0) pool = allCards;
         return pool[Math.floor(Math.random() * pool.length)];
@@ -785,9 +768,7 @@
     function performSwipe(wrapper) {
       if (wrapper.classList.contains('card-swiped')) return;
       playRetroSound('laser');
-      
       generateFireflies();
-
       wrapper.classList.add('card-swiped');
       cardsSwipedCount++;
 
@@ -815,9 +796,7 @@
 
       const tempCounts = { ...counts };
       drawnCards.forEach(card => {
-        if (!card.isDuplicate) {
-          tempCounts[card.id] = (tempCounts[card.id] || 0) + 1;
-        }
+        if (!card.isDuplicate) tempCounts[card.id] = (tempCounts[card.id] || 0) + 1;
       });
 
       drawnCards.forEach(card => {
@@ -856,11 +835,10 @@
       if (userData.streak_day >= 30) {
         nextDay = 1;
         nextMonths += 1;
-        sessionSummary.push("Mese completato! Ripartirai dal Giorno 1.");
+        sessionSummary.push("Mese completato!");
       }
 
       const today = new Date().toISOString().split('T')[0];
-
       try {
         await _supabase.from('user_state').update({
           streak_day: nextDay,
@@ -871,9 +849,7 @@
         }).eq('id', 1);
       } catch(e) {}
 
-      const summaryBox = document.getElementById('summary-content');
-      summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
-
+      document.getElementById('summary-content').innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
       showScreen('part5');
     }
 
@@ -891,13 +867,10 @@
 
     async function openAlbum() {
       showScreen('part-album');
-      
-      let dustCount = userData ? userData.dust_count : 0;
-      document.getElementById('excel-dust').innerText = dustCount;
+      document.getElementById('excel-dust').innerText = userData ? userData.dust_count : 0;
 
       let cards = [];
       let inventory = [];
-
       try {
         const { data: cData } = await _supabase.from('cards').select('*');
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
@@ -913,14 +886,14 @@
 
       cards.forEach(card => {
         const qty = counts[card.id] || 0;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${card.id}</td>
-          <td>${card.name}</td>
-          <td>${card.rarity}</td>
-          <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
+        tbody.innerHTML += `
+          <tr>
+            <td>${card.id}</td>
+            <td>${card.name}</td>
+            <td>${card.rarity}</td>
+            <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
+          </tr>
         `;
-        tbody.appendChild(tr);
       });
     }
   </script>
