@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameBoy Streak</title>
+  <!-- Google Font Retro -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { background: #000; color: #0f380f; font-family: 'Press Start 2P', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+
+    .screen { width: 100vw; height: 100vh; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
+    .active { display: flex; }
+
+    /* Parte 1 */
+    #part1 { background: #111; color: #fff; }
+    
+    /* Parte 2 - Animazione Accensione GameBoy */
+    #part2 { background: #000; animation: turnOn 1.5s forwards; }
+    @keyframes turnOn {
+      0% { background: #000; opacity: 0; }
+      50% { background: #8b956d; opacity: 0.5; }
+      100% { background: #9bbc0f; opacity: 1; }
+    }
+
+    /* Stile Schermo GameBoy */
+    .gb-screen { background: #9bbc0f; color: #0f380f; }
+
+    /* Parte 4 - Carte e Swipe */
+    .card-container { relative; width: 220px; height: 310px; margin-top: 20px; perspective: 1000px; }
+    .card-wrapper { position: absolute; width: 100%; height: 100%; transition: transform 0.4s ease, opacity 0.4s ease; cursor: grab; }
+    .card-wrapper:active { cursor: grabbing; }
+    .card-swiped { transform: translateY(-400px) rotate(-10deg) !important; opacity: 0 !important; pointer-events: none; }
+    
+    .card { width: 100%; height: 100%; background: #e0f8d0; border: 4px solid #0f380f; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 4px 4px 0px #306230; }
+    .card img { width: 100%; height: 160px; object-fit: cover; border: 2px solid #0f380f; }
+    .card-title { font-size: 10px; line-height: 14px; color: #0f380f; }
+    .card-rarity { font-size: 8px; background: #306230; color: #9bbc0f; padding: 4px; border-radius: 4px; }
+    .duplicate-tag { font-size: 8px; color: #8b0500; font-weight: bold; }
+
+    /* Bottoni Stile Retro */
+    button { font-family: 'Press Start 2P', monospace; padding: 14px 20px; font-size: 12px; cursor: pointer; background: #8b956d; color: #0f380f; border: 4px solid #0f380f; box-shadow: 3px 3px 0px #306230; margin-top: 15px; }
+    button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #306230; }
+
+    .stat-box { font-size: 8px; margin-bottom: 15px; line-height: 16px; text-align: left; }
+  </style>
+</head>
+<body>
+
+  <!-- PARTE 1: Pagina Iniziale -->
+  <div id="part1" class="screen active">
+    <button onclick="goToPart2()">START</button>
+  </div>
+
+  <!-- PARTE 2: Accensione GameBoy -->
+  <div id="part2" class="screen"></div>
+
+  <!-- PARTE 3: Cutscene e Verifiche -->
+  <div id="part3" class="screen gb-screen">
+    <div class="stat-box">
+      <div>STREAK: <span id="val-streak">1</span> GIORNI</div>
+      <div>MESI: <span id="val-months">0</span></div>
+      <div>BAMBOLE: <span id="val-dolls">0</span>/3</div>
+      <div>POLVERE: <span id="val-dust">0</span></div>
+    </div>
+    <h2 id="day-title" style="font-size: 14px; margin-bottom: 10px;">GIORNO X</h2>
+    <img id="cutscene-img" src="" style="max-width: 180px; max-height: 120px; border: 3px solid #0f380f; display:none; margin: 10px 0;">
+    <p id="cutscene-text" style="font-size: 9px; line-height: 14px; max-width: 80%; margin: 10px 0;"></p>
+    <button onclick="goToPart4()">CONTINUA</button>
+  </div>
+
+  <!-- PARTE 4: Sbustamento (4 Carte Swipe-up) -->
+  <div id="part4" class="screen" style="background: #000; color: #fff;">
+    <div style="font-size: 10px; margin-bottom: 10px;">SCORRI IN ALTO PER SVELARE</div>
+    <div class="card-container" id="cards-stack"></div>
+    <button id="btn-to-part5" onclick="goToPart5()" style="display:none; margin-top: 25px;">RIEPILOGO</button>
+  </div>
+
+  <!-- PARTE 5: Riepilogo Sessione -->
+  <div id="part5" class="screen gb-screen">
+    <h3 style="font-size: 12px; margin-bottom: 15px;">RIEPILOGO OTTENUTO</h3>
+    <div id="summary-content" style="font-size: 8px; line-height: 16px; max-width: 85%;"></div>
+    <button onclick="turnOff()">SPEGNI GAMEBOY</button>
+  </div>
+
+  <!-- PARTE 6: Schermata Finale -->
+  <div id="part6" class="screen" style="background: #000;">
+    <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
+  </div>
+
+  <script>
+    // CONFIGURAZIONE SUPABASE (Sostituisci con i tuoi dati)
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let userData = null;
+    let drawnCards = [];
+    let sessionSummary = [];
+    let cardsSwipedCount = 0;
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function goToPart2() {
+      showScreen('part2');
+      setTimeout(() => { checkAndGoToPart3(); }, 1500);
+    }
+
+    async function checkAndGoToPart3() {
+      showScreen('part3');
+      
+      // Carica Dati Utente
+      const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+      userData = data;
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (userData.last_claim_date) {
+        const lastDate = new Date(userData.last_claim_date);
+        const currDate = new Date(today);
+        const diffDays = Math.floor((currDate - lastDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 1) {
+          // Ha saltato uno o più giorni
+          if (userData.dolls_count > 0) {
+            userData.dolls_count -= 1;
+            sessionSummary.push("Hai saltato dei giorni! Usata 1 Pokebambola per salvare la streak.");
+          } else {
+            userData.streak_day = 1;
+            sessionSummary.push("Streak resettata al Giorno 1 per assenza.");
+          }
+        }
+      }
+
+      // Gestione Bonus Pokébambola nei giorni 7, 14, 21, 28
+      if ([7, 14, 21, 28].includes(userData.streak_day)) {
+        if (userData.dolls_count < 3) {
+          userData.dolls_count += 1;
+          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +1 Pokebambola ottenuta!`);
+        } else {
+          userData.dust_count += 50;
+          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: Pokebambole al max! Convertita in +50 Polvere.`);
+        }
+      }
+
+      // Aggiorna Interfaccia Parte 3
+      document.getElementById('val-streak').innerText = userData.streak_day;
+      document.getElementById('val-months').innerText = userData.months_completed;
+      document.getElementById('val-dolls').innerText = userData.dolls_count;
+      document.getElementById('val-dust').innerText = userData.dust_count;
+      document.getElementById('day-title').innerText = `GIORNO ${userData.streak_day}`;
+
+      // Carica Cutscene
+      const { data: cutscene } = await _supabase.from('cutscenes').select('*').eq('day', userData.streak_day).single();
+      if (cutscene) {
+        document.getElementById('cutscene-text').innerText = cutscene.text;
+        if (cutscene.image_url) {
+          const img = document.getElementById('cutscene-img');
+          img.src = cutscene.image_url;
+          img.style.display = 'block';
+        }
+      } else {
+        document.getElementById('cutscene-text').innerText = "Continua la tua avventura!";
+        document.getElementById('cutscene-img').style.display = 'none';
+      }
+    }
+
+    async function goToPart4() {
+      showScreen('part4');
+      const container = document.getElementById('cards-stack');
+      container.innerHTML = '';
+      cardsSwipedCount = 0;
+      document.getElementById('btn-to-part5').style.display = 'none';
+
+      // Estrai 4 carte casuali da Supabase
+      const { data: allCards } = await _supabase.from('cards').select('*');
+      const { data: inventory } = await _supabase.from('user_inventory').select('card_id');
+      const ownedIds = inventory ? inventory.map(i => i.card_id) : [];
+
+      drawnCards = [];
+      for (let i = 0; i < 4; i++) {
+        const randomCard = allCards[Math.floor(Math.random() * allCards.length)];
+        const isDuplicate = ownedIds.includes(randomCard.id);
+        drawnCards.push({ ...randomCard, isDuplicate });
+      }
+
+      // Renderizza le 4 carte sovrapposte
+      drawnCards.forEach((card, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+        wrapper.style.zIndex = 4 - index;
+        
+        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE (+10 Polvere)</div>` : '';
+
+        wrapper.innerHTML = `
+          <div class="card">
+            <div class="card-title">${card.name}</div>
+            <img src="${card.image_url}" alt="card">
+            <div class="card-rarity">${card.rarity}</div>
+            ${dupHTML}
+          </div>
+        `;
+
+        // Meccanica Swipe / Drag verso l'alto
+        let startY = 0;
+        wrapper.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+        wrapper.addEventListener('touchend', e => {
+          let endY = e.changedTouches[0].clientY;
+          if (startY - endY > 50) performSwipe(wrapper);
+        });
+        wrapper.addEventListener('mousedown', e => { startY = e.clientY; });
+        wrapper.addEventListener('mouseup', e => {
+          if (startY - e.clientY > 50) performSwipe(wrapper);
+        });
+
+        container.appendChild(wrapper);
+      });
+    }
+
+    function performSwipe(wrapper) {
+      if (wrapper.classList.contains('card-swiped')) return;
+      wrapper.classList.add('card-swiped');
+      cardsSwipedCount++;
+
+      if (cardsSwipedCount === 4) {
+        document.getElementById('btn-to-part5').style.display = 'block';
+      }
+    }
+
+    async function goToPart5() {
+      // Salva le carte e aggiorna la polvere su Supabase
+      for (const card of drawnCards) {
+        if (card.isDuplicate) {
+          userData.dust_count += 10;
+          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
+        } else {
+          await _supabase.from('user_inventory').insert({ card_id: card.id });
+          sessionSummary.push(`Nuova Carta: ${card.name} (${card.rarity})`);
+        }
+      }
+
+      // Incremento giorno/mese
+      let nextDay = userData.streak_day + 1;
+      let nextMonths = userData.months_completed;
+      if (userData.streak_day >= 30) {
+        nextDay = 1;
+        nextMonths += 1;
+        sessionSummary.push("Mese completato! Il prossimo ciclo ripartira dal Giorno 1.");
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      await _supabase.from('user_state').update({
+        streak_day: nextDay,
+        months_completed: nextMonths,
+        dolls_count: userData.dolls_count,
+        dust_count: userData.dust_count,
+        last_claim_date: today
+      }).eq('id', 1);
+
+      // Mostra riepilogo
+      const summaryBox = document.getElementById('summary-content');
+      summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 8px;">- ${item}</p>`).join('');
+
+      showScreen('part5');
+    }
+
+    function turnOff() {
+      showScreen('part2');
+      setTimeout(() => { showScreen('part6'); }, 1200);
+    }
+
+    function restart() {
+      sessionSummary = [];
+      showScreen('part1');
+    }
+  </script>
+</body>
+</html>
