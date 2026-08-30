@@ -23,7 +23,7 @@
       max-width: 380px;
       height: 90vh;
       max-height: 680px;
-      background: #d32f2f; /* RED FRAME PROVVISORIO */
+      background: #d32f2f;
       border: 6px solid #8b0000;
       border-radius: 20px 20px 50px 20px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
@@ -124,8 +124,8 @@
       <!-- PARTE 2: ACCENSIONE -->
       <div id="part2" class="screen"></div>
 
-      <!-- PARTE 3: CUTSCENE VISUAL NOVEL ENGINE -->
-      <div id="part3" class="screen gb-screen" style="position: relative; overflow: hidden; padding: 0;">
+      <!-- PARTE 3: CUTSCENE VISUAL NOVEL ENGINE (CLICK OVUNQUE PER AVANZARE) -->
+      <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer;">
         <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
         <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
 
@@ -134,10 +134,10 @@
           <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
         </div>
 
-        <div id="dialogue-box" onclick="handleDialogueClick()" style="position: absolute; bottom: 8px; width: 92%; min-height: 60px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; cursor: pointer; text-align: left; display: none;">
+        <div id="dialogue-box" style="position: absolute; bottom: 8px; width: 92%; min-height: 60px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; text-align: left; display: none;">
           <div id="speaker-name" style="font-size: 7px; color: #306230; font-weight: bold; margin-bottom: 4px; text-transform: uppercase;"></div>
           <div id="dialogue-text" style="font-size: 7px; line-height: 10px; color: #0f380f;"></div>
-          <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
+          <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK OVUNQUE PER AVANZARE]</div>
         </div>
         <audio id="bg-music" loop></audio>
       </div>
@@ -313,24 +313,25 @@
       document.getElementById('val-dolls').innerText = userData.dolls_count;
       document.getElementById('val-dust').innerText = userData.dust_count;
 
-      // CARICAMENTO FILE JSON DA SUPABASE STORAGE
+      // CARICAMENTO DINAMICO FILE JSON IN BASE AL GIORNO (es. cutscenes/giorno1.json)
+      const fileName = `cutscenes/giorno${userData.streak_day}.json`;
       try {
-        const { data: fileBlob } = await _supabase.storage.from('assets').download('cutscenes/cutscene.json');
+        const { data: fileBlob } = await _supabase.storage.from('assets').download(fileName);
         if (fileBlob) {
           cutsceneData = JSON.parse(await fileBlob.text());
         }
       } catch(e) {
-        console.error("Errore download cutscene:", e);
+        console.error(`Errore download cutscene ${fileName}:`, e);
         cutsceneData = null;
       }
 
-      // FALLBACK SE IL FILE NON ESISTE
+      // FALLBACK SE IL FILE DEL GIORNO NON ESISTE
       if (!cutsceneData) {
         cutsceneData = {
           background: '',
           music: '',
           actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [100, 150] }],
-          events: [{ id: 1, type: 'dialogue', speaker: 'SISTEMA', text: `Benvenuto ${userData.username || 'Giocatore'}!`, start: 0, duration: 3 }]
+          events: [{ id: 1, type: 'dialogue', speaker: 'SISTEMA', text: `Giorno ${userData.streak_day}: Benvenuto ${userData.username || 'Giocatore'}!`, start: 0, duration: 3 }]
         };
       }
 
@@ -368,7 +369,6 @@
         img.className = 'actor-sprite';
         img.id = `actor-sprite-${actor.id}`;
         
-        // Se l'attore ha uno sprite custom caricato da Supabase usa quello, altrimenti usa l'avatar profilo
         if (actor.asset) {
           img.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
         } else {
@@ -385,7 +385,7 @@
         if (isDialogueActive) return;
 
         (cutsceneData.events || []).forEach(ev => {
-          // Gestione Movimenti (Interpolazione Coordinate LERP)
+          // Gestione Movimenti (LERP)
           if (ev.type === 'move' && cutsceneTime >= ev.start && cutsceneTime <= (ev.start + ev.duration)) {
             const actorObj = cutsceneData.actors.find(a => a.name === ev.actor);
             if (actorObj) {
@@ -423,9 +423,11 @@
       }, 50);
     }
 
-    function handleDialogueClick() {
-      document.getElementById('dialogue-box').style.display = 'none';
-      isDialogueActive = false;
+    function handleCutsceneClick() {
+      if (isDialogueActive) {
+        document.getElementById('dialogue-box').style.display = 'none';
+        isDialogueActive = false;
+      }
     }
 
     async function goToPart4() {
