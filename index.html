@@ -114,12 +114,10 @@
       width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700);
     }
 
-    /* Canvas per il raggio laser interattivo */
     #laser-canvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50;
     }
 
-    /* Effetto Strappo Finale Busta */
     .booster-pack.sliced-open {
       animation: packOpenAnim 0.8s ease-out forwards;
     }
@@ -129,7 +127,6 @@
       100% { transform: translateY(180px) scale(0.6) rotate(25deg); opacity: 0; }
     }
 
-    /* --- LUCCIOLE E BAGLIORE DI APERTURA --- */
     #sparkles-container {
       position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; z-index: 20;
     }
@@ -150,28 +147,32 @@
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    /* --- STILE CARTE ANTICHE & UNOWN --- */
+    /* --- STILE CARTE ISPIRATO ALL'IMMAGINE IN ALLEGATO (BRONZO/ORO ANTICO UNOWN) --- */
     .card { 
       width: 100%; height: 100%; 
-      background: linear-gradient(135deg, #c8b183 0%, #b89762 60%, #9e7b4b 100%); 
-      border: 3px solid #3d2616; border-radius: 8px; padding: 5px; 
+      background: linear-gradient(135deg, #d4b886 0%, #a8834c 50%, #7d5e32 100%); 
+      border: 4px solid #4a321a; border-radius: 12px; padding: 8px 6px; 
       display: flex; flex-direction: column; justify-content: space-between; align-items: center; 
-      pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.7), inset 0 0 12px rgba(40,20,5,0.6);
+      pointer-events: none; box-shadow: 0 6px 15px rgba(0,0,0,0.8), inset 0 0 15px rgba(50,30,10,0.8);
       position: relative;
     }
+    
+    /* Cornice superiore artistica ispirata all'allegato */
     .card::before {
-      content: '⾕⾖⾗⾘⾙⾚';
-      position: absolute; top: 2px; font-size: 5px; color: #3d2616; letter-spacing: 2px; opacity: 0.85;
+      content: '⾕ ⾖ ⾗ ⾘ ⾙ ⾚';
+      position: absolute; top: 3px; font-size: 5px; color: #301a0a; letter-spacing: 3px; font-weight: bold; text-shadow: 0 1px 1px rgba(255,215,0,0.4);
     }
+    
+    /* Cornice inferiore con stemma/scritta stile bindex */
     .card::after {
-      content: '⾚⾙⾘⾗⾖⾕';
-      position: absolute; bottom: 2px; font-size: 5px; color: #3d2616; letter-spacing: 2px; opacity: 0.85;
+      content: 'bindex';
+      position: absolute; bottom: 4px; font-size: 7px; color: #301a0a; font-family: 'Press Start 2P', monospace; font-weight: bold; letter-spacing: 1px; text-shadow: 0 1px 1px rgba(255,215,0,0.5);
     }
 
-    .card img { width: 100%; height: 92px; object-fit: cover; border: 2px solid #3d2616; border-radius: 4px; filter: sepia(0.5) contrast(1.2) brightness(0.9); }
-    .card-title { font-size: 5.5px; color: #231208; font-weight: bold; margin-top: 4px; text-shadow: 0px 0px 1px rgba(255,255,255,0.4); }
-    .card-rarity { font-size: 5px; background: #3d2616; color: #ffcc00; padding: 2px 5px; border-radius: 3px; }
-    .duplicate-tag { font-size: 5px; color: #6b0000; font-weight: bold; }
+    .card img { width: 100%; height: 86px; object-fit: cover; border: 2px solid #301a0a; border-radius: 4px; filter: sepia(0.4) contrast(1.1) brightness(0.95); margin-top: 10px; }
+    .card-title { font-size: 5.5px; color: #211105; font-weight: bold; margin-top: 2px; text-shadow: 0px 0px 1px rgba(255,255,255,0.5); }
+    .card-rarity { font-size: 4.5px; background: #301a0a; color: #ffcc00; padding: 2px 4px; border-radius: 3px; margin-bottom: 12px; }
+    .duplicate-tag { font-size: 5px; color: #500; font-weight: bold; position: absolute; top: 12px; right: 8px; background: rgba(255,255,255,0.7); padding: 1px 3px; border-radius: 2px; }
 
     .card-glow-reveal {
       animation: cardGlowFade 2s ease-out forwards;
@@ -183,13 +184,13 @@
     }
 
     .card.legendary-shiny {
-      border: 3px solid #ffcc00;
-      box-shadow: 0 0 18px #ffdf00, inset 0 0 15px rgba(255,215,0,0.8);
+      border: 4px solid #ffcc00;
+      box-shadow: 0 0 20px #ffdf00, inset 0 0 15px rgba(255,215,0,0.9);
       animation: legendaryPulse 2s infinite alternate ease-in-out;
     }
     @keyframes legendaryPulse {
       0% { box-shadow: 0 0 10px #ffcc00, inset 0 0 10px rgba(255,215,0,0.5); }
-      100% { box-shadow: 0 0 25px #00ffff, 0 0 35px #ff00ff, inset 0 0 20px rgba(255,255,255,0.9); }
+      100% { box-shadow: 0 0 30px #00ffff, 0 0 40px #ff00ff, inset 0 0 20px rgba(255,255,255,0.9); }
     }
 
     #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
@@ -211,6 +212,7 @@
       z-index: 5; 
       image-rendering: pixelated; 
       object-fit: contain; 
+      transition: transform 0.1s linear;
     }
 
     #debug-panel {
@@ -267,7 +269,6 @@
         <audio id="bg-music" loop></audio>
       </div>
 
-      <!-- PARTE 4: BUSTINA CON TAGLIO LASER INTERATTIVO A TRACCIAMENTO MOUSE/DITO -->
       <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
         
         <div id="sparkles-container"></div>
@@ -356,35 +357,62 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    function playRetroSound(type) {
+    /* --- SUONI EPICI E POTENTI --- */
+    function playEpicSound(type) {
       try {
         initAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
 
         if (type === 'start') {
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-          osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+          // Accordo trionfale epico 8-bit
+          [130.81, 196.00, 261.63, 392.00].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + i * 0.05);
+            gain.gain.setValueAtTime(0.12, now + i * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.05);
+            osc.stop(now + 0.6);
+          });
         } else if (type === 'laser') {
+          // Raggio laser energetico ad alta potenza con modulazione
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+          
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.4);
-          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(3000, now);
+
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+          
+          osc.start(now);
+          osc.stop(now + 0.4);
         } else if (type === 'off') {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+          // Spegnimento epico stile tubo catodico profondo
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
         }
       } catch(e) {}
     }
@@ -398,7 +426,6 @@
       }
     }
 
-    /* --- GESTIONE INTERATTIVA TAGLIO LASER SULLA BUSTA --- */
     let isDrawingLaser = false;
     let laserPoints = [];
     let packSliced = false;
@@ -442,7 +469,7 @@
       if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
         isDrawingLaser = true;
         laserPoints = [{ x: clientX - rect.left, y: clientY - rect.top }];
-        playRetroSound('laser');
+        playEpicSound('laser');
       }
     }
 
@@ -459,12 +486,11 @@
           laserPoints.push({ x: clientX - rect.left, y: clientY - rect.top });
           drawLaserTrail();
 
-          // Se il tracciato copre abbastanza distanza, esegui il taglio!
           if (laserPoints.length > 12) {
             packSliced = true;
             isDrawingLaser = false;
             pack.classList.add('sliced-open');
-            playRetroSound('laser');
+            playEpicSound('laser');
 
             setTimeout(() => {
               document.getElementById('booster-container').style.display = 'none';
@@ -520,7 +546,7 @@
       ctx.lineWidth = 5;
       ctx.lineCap = 'round';
       ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 15;
       ctx.stroke();
     }
 
@@ -558,7 +584,7 @@
     }
 
     function startApp() {
-      playRetroSound('start');
+      playEpicSound('start');
       const p2 = document.getElementById('part2');
       showScreen('part2');
       p2.classList.add('turning-on');
@@ -597,7 +623,7 @@
         cutsceneData = {
           background: '',
           music: '',
-          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
+          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [216, 111], path: [[216,111], [250, 111]] }],
           events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
         };
       }
@@ -632,6 +658,7 @@
       const scaleX = stage.clientWidth / 480;
       const scaleY = stage.clientHeight / 270;
 
+      const actorElements = {};
       (cutsceneData.actors || []).forEach(actor => {
         const img = document.createElement('img');
         img.className = 'actor-sprite';
@@ -642,10 +669,30 @@
         img.style.width = `${48 * scaleX}px`;
         img.style.height = `${48 * scaleY}px`;
         spritesLayer.appendChild(img);
+        actorElements[actor.id] = { element: img, actor: actor };
       });
+
+      if (cutsceneTimer) clearInterval(cutsceneTimer);
 
       cutsceneTimer = setInterval(() => {
         if (isDialogueActive) return;
+
+        // Gestione movimento fluido lungo il path dei personaggi (Fix GitHub1)
+        Object.values(actorElements).forEach(({ element, actor }) => {
+          if (actor.path && actor.path.length > 1) {
+            const progress = Math.min(cutsceneTime / 8.0, 1.0);
+            const targetIndex = Math.min(Math.floor(progress * (actor.path.length - 1)), actor.path.length - 2);
+            const p1 = actor.path[targetIndex];
+            const p2 = actor.path[targetIndex + 1];
+            const localProg = (progress * (actor.path.length - 1)) - targetIndex;
+
+            const currentX = p1[0] + (p2[0] - p1[0]) * localProg;
+            const currentY = p1[1] + (p2[1] - p1[1]) * localProg;
+
+            element.style.left = `${currentX * scaleX}px`;
+            element.style.top = `${currentY * scaleY}px`;
+          }
+        });
 
         (cutsceneData.events || []).forEach(ev => {
           if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
@@ -767,7 +814,7 @@
 
     function performSwipe(wrapper) {
       if (wrapper.classList.contains('card-swiped')) return;
-      playRetroSound('laser');
+      playEpicSound('laser');
       generateFireflies();
       wrapper.classList.add('card-swiped');
       cardsSwipedCount++;
@@ -854,7 +901,7 @@
     }
 
     function turnOff() {
-      playRetroSound('off');
+      playEpicSound('off');
       showScreen('part2');
       setTimeout(() => { showScreen('part6'); }, 1200);
     }
