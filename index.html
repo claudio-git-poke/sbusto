@@ -2,279 +2,183 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Gioco Retro Card</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameBoy Streak</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      margin: 0;
-      padding: 0;
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { 
+      background: #1a1a1a; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh; 
+      font-family: 'Press Start 2P', monospace;
+      padding: 10px;
     }
-    body {
-      background-color: #1a1a1a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      font-family: 'Courier New', Courier, monospace;
-    }
+
     #gameboy-frame {
-      width: 100vw;
-      height: 100vh;
-      max-width: 420px;
-      max-height: 840px;
-      background-color: #cc0000;
-      border: 4px solid #880000;
-      border-radius: 12px;
+      width: 100%;
+      max-width: 380px;
+      height: 90vh;
+      max-height: 680px;
+      background: #d32f2f; /* RED FRAME PROVVISORIO */
+      border: 6px solid #8b0000;
+      border-radius: 20px 20px 50px 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      position: relative;
-    }
-    @media (max-width: 480px), (max-height: 850px) {
-      #gameboy-frame {
-        width: 100vw;
-        height: 100vh;
-        max-width: none;
-        max-height: none;
-        border-radius: 0;
-        border: none;
-      }
-    }
-    #screen-viewport {
-      width: 100%;
-      height: 65%;
-      background-color: #9bbc0f;
-      border: 4px solid #0f380f;
-      border-radius: 6px;
-      position: relative;
-      overflow: hidden;
-    }
-    .screen {
-      display: none;
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      padding: 12px;
-      color: #0f380f;
+      position: relative;
+      padding: 15px;
+    }
+    
+    #frame-label {
+      position: absolute;
+      top: 12px;
+      color: #fff;
+      font-size: 7px;
+      letter-spacing: 1px;
       text-align: center;
     }
-    .screen.active {
-      display: flex;
-    }
-    #controls {
-      width: 100%;
-      height: 30%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 10px;
-    }
-    #dpad {
-      width: 90px;
-      height: 90px;
+
+    #screen-wrapper {
+      width: 90%;
+      height: 75%;
+      background: #000;
+      border: 4px solid #333;
+      border-radius: 8px;
+      overflow: hidden;
       position: relative;
     }
-    .dbtn {
-      position: absolute;
-      background-color: #222;
-      border: 1px solid #000;
+
+    .screen { width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 12px; box-sizing: border-box; }
+    .active { display: flex; }
+
+    /* PARTE 0 LOGIN */
+    #part0 { background: #222; color: #fff; font-size: 8px; }
+    #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 6px 0 12px 0; width: 80%; border: 2px solid #fff; background: #000; color: #9bbc0f; }
+
+    #part1 { background: #111; color: #fff; }
+    #part2 { background: #000; }
+    .turning-on { animation: turnOn 1.5s forwards; }
+    @keyframes turnOn {
+      0% { background: #000; opacity: 0; }
+      50% { background: #8b956d; opacity: 0.5; }
+      100% { background: #9bbc0f; opacity: 1; }
     }
-    #d-up { top: 0; left: 30px; width: 30px; height: 30px; }
-    #d-down { bottom: 0; left: 30px; width: 30px; height: 30px; }
-    #d-left { top: 30px; left: 0; width: 30px; height: 30px; }
-    #d-right { top: 30px; right: 0; width: 30px; height: 30px; }
-    #d-center { top: 30px; left: 30px; width: 30px; height: 30px; background-color: #222; }
-    #ab-buttons {
-      display: flex;
-      gap: 15px;
-      transform: rotate(-15deg);
-    }
-    .abtn {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      background-color: #8b0000;
-      color: white;
-      font-weight: bold;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 2px 2px 0px #000;
-      cursor: pointer;
-    }
-    .abtn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0px 0px 0px #000;
-    }
-    .retro-btn {
-      background-color: #8bac0f;
-      border: 2px solid #0f380f;
-      color: #0f380f;
-      padding: 8px 12px;
-      font-family: inherit;
-      font-weight: bold;
-      margin-top: 8px;
-      cursor: pointer;
-    }
-    .retro-btn:active {
-      background-color: #306230;
-      color: #9bbc0f;
-    }
-    #cutscene-img {
-      width: 80%;
-      height: 45%;
-      border: 2px solid #0f380f;
-      object-fit: cover;
-      margin-bottom: 8px;
-    }
-    #cutscene-text {
-      font-size: 11px;
-      height: 35%;
-      overflow-y: auto;
-    }
-    #pack {
-      width: 100px;
-      height: 140px;
-      background-color: #306230;
-      border: 3px dashed #0f380f;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #9bbc0f;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #cards-stack {
-      position: relative;
-      width: 130px;
-      height: 180px;
-    }
-    .card-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-    .card {
-      width: 100%;
-      height: 100%;
-      background-color: #8bac0f;
-      border: 3px solid #0f380f;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 6px;
-      box-sizing: border-box;
-    }
-    .card img {
-      width: 100%;
-      height: 90px;
-      object-fit: cover;
-      border: 1px solid #0f380f;
-    }
-    .card-title { font-size: 10px; font-weight: bold; margin-bottom: 4px; }
-    .card-rarity { font-size: 9px; margin-top: 4px; }
-    .duplicate-tag {
-      background-color: #0f380f;
-      color: #9bbc0f;
-      font-size: 8px;
-      padding: 2px;
-      margin-top: 2px;
-    }
-    #album-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-      width: 100%;
-      height: 80%;
-      overflow-y: auto;
-    }
-    .album-slot {
-      border: 1px solid #0f380f;
-      padding: 4px;
-      font-size: 9px;
-      min-height: 50px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background-color: #8bac0f;
-    }
-    .album-slot.missing {
-      opacity: 0.4;
-      background-color: transparent;
-    }
+
+    .gb-screen { background: #9bbc0f; color: #0f380f; }
+
+    .card-container { position: relative; width: 160px; height: 230px; margin-top: 10px; }
+    .card-wrapper { position: absolute; width: 100%; height: 100%; transition: transform 0.4s ease, opacity 0.4s ease; cursor: grab; }
+    .card-swiped { transform: translateY(-350px) rotate(-10deg) !important; opacity: 0 !important; pointer-events: none; }
+    
+    .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+    .card img { width: 100%; height: 110px; object-fit: cover; border: 2px solid #0f380f; }
+    .card-title { font-size: 8px; color: #0f380f; }
+    .card-rarity { font-size: 6px; background: #306230; color: #9bbc0f; padding: 2px 4px; }
+    .duplicate-tag { font-size: 6px; color: #8b0500; font-weight: bold; }
+
+    #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
+    .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; }
+    .excel-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+    .excel-table th, .excel-table td { border: 1px solid #ccc; padding: 4px; text-align: left; }
+    .excel-table th { background: #e6e6e6; }
+    .excel-table tr:nth-child(even) { background: #f9f9f9; }
+
+    button { font-family: 'Press Start 2P', monospace; padding: 10px 12px; font-size: 8px; cursor: pointer; background: #8b956d; color: #0f380f; border: 3px solid #0f380f; box-shadow: 2px 2px 0px #306230; margin-top: 8px; }
+    button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #306230; }
+    
+    .btn-small { padding: 6px 8px; font-size: 7px; }
+    .stat-box { font-size: 6px; line-height: 10px; text-align: left; }
   </style>
 </head>
 <body>
 
   <div id="gameboy-frame">
-    <div id="screen-viewport">
-      
-      <!-- PARTE 1: LOGIN -->
-      <div id="part1" class="screen active">
-        <h3 style="margin-bottom: 10px;">RETRO CARD</h3>
-        <input type="text" id="username" placeholder="Username" style="margin-bottom: 5px; padding: 4px;">
-        <input type="password" id="password" placeholder="Password" style="margin-bottom: 10px; padding: 4px;">
-        <button class="retro-btn" onclick="handleLogin()">ENTRA</button>
+    <div id="frame-label">[ FRAME ROSSO PROVVISORIO ]</div>
+
+    <div id="screen-wrapper">
+
+      <!-- PARTE 0: LOGIN & PROFILO -->
+      <div id="part0" class="screen active">
+        <div style="margin-bottom: 8px; color: #9bbc0f;">CONFIGURAZIONE</div>
+        <label>NOME UTENTE:</label>
+        <input type="text" id="login-username" value="Giocatore">
+        <label>URL AVATAR (PNG):</label>
+        <input type="text" id="login-avatar" value="https://picsum.photos/40/40?random=88">
+        <button onclick="saveProfileAndGoToPart1()">SALVA E VAI</button>
       </div>
 
-      <!-- PARTE 2: CUTSCENE -->
-      <div id="part2" class="screen">
-        <img id="cutscene-img" src="" alt="cutscene">
-        <div id="cutscene-text">Caricamento...</div>
-        <button class="retro-btn" onclick="goToPart3()">AVANTI</button>
+      <!-- PARTE 1: START -->
+      <div id="part1" class="screen">
+        <button id="start-btn" onclick="startApp()">START</button>
       </div>
 
-      <!-- PARTE 3: SBUSTAMENTO -->
-      <div id="part3" class="screen">
-        <p style="margin-bottom: 10px; font-size: 12px;">Tocca la bustina!</p>
-        <div id="pack" onclick="goToPart4()">BUSTINA</div>
-      </div>
+      <!-- PARTE 2: ACCENSIONE -->
+      <div id="part2" class="screen"></div>
 
-      <!-- PARTE 4: SWIPE CARTE -->
-      <div id="part4" class="screen">
-        <div id="cards-stack"></div>
-        <button id="btn-to-part5" class="retro-btn" style="display:none;" onclick="goToPart5()">ALBUM</button>
-      </div>
+      <!-- PARTE 3: CUTSCENE VISUAL NOVEL -->
+      <div id="part3" class="screen gb-screen" style="position: relative; overflow: hidden; padding: 0;">
+        <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
+        <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
 
-      <!-- PARTE 5: ALBUM E STATS -->
-      <div id="part5" class="screen">
-        <div style="font-size: 10px; margin-bottom: 4px;">
-          Polvere: <span id="dust-count">0</span> | Bambole: <span id="dolls-count">0</span>
+        <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 4; background: rgba(155, 188, 15, 0.85); padding: 4px; border-radius: 4px;">
+          <div>STREAK: <span id="val-streak">1</span> GG | MESI: <span id="val-months">0</span></div>
+          <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
         </div>
-        <div id="album-grid"></div>
-        <button class="retro-btn" onclick="showScreen('part3')" style="margin-top: 4px;">HOME</button>
+
+        <div id="dialogue-box" onclick="nextCutsceneStep()" style="position: absolute; bottom: 8px; width: 92%; min-height: 60px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 3; cursor: pointer; text-align: left;">
+          <div id="speaker-name" style="font-size: 7px; color: #306230; font-weight: bold; margin-bottom: 4px; text-transform: uppercase;"></div>
+          <div id="dialogue-text" style="font-size: 7px; line-height: 10px; color: #0f380f;"></div>
+          <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
+        </div>
+        <audio id="bg-music" loop></audio>
       </div>
 
-    </div>
+      <!-- PARTE 4: SBUSTATA -->
+      <div id="part4" class="screen" style="background: #000; color: #fff;">
+        <div style="font-size: 7px; margin-bottom: 4px;">SCORRI IN ALTO (SWIPE)</div>
+        <div class="card-container" id="cards-stack"></div>
+        <button id="btn-to-part5" onclick="goToPart5()" style="display:none; margin-top: 10px;">RIEPILOGO</button>
+      </div>
 
-    <div id="controls">
-      <div id="dpad">
-        <div class="dbtn" id="d-up"></div>
-        <div class="dbtn" id="d-down"></div>
-        <div class="dbtn" id="d-left"></div>
-        <div class="dbtn" id="d-right"></div>
-        <div id="d-center"></div>
+      <!-- PARTE 5: RIEPILOGO & ALBUM -->
+      <div id="part5" class="screen gb-screen">
+        <h3 style="font-size: 9px; margin-bottom: 6px;">RIEPILOGO</h3>
+        <div id="summary-content" style="font-size: 6px; line-height: 11px; max-width: 90%;"></div>
+        <button onclick="openAlbum()" class="btn-small" style="background: #306230; color: #9bbc0f; margin-top: 12px;">VEDI ALBUM EXCEL</button>
+        <button onclick="turnOff()">SPEGNI</button>
       </div>
-      <div id="ab-buttons">
-        <div class="abtn" id="btn-b">B</div>
-        <div class="abtn" id="btn-a">A</div>
+
+      <!-- PARTE 6: FINE -->
+      <div id="part6" class="screen" style="background: #000;">
+        <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
       </div>
+
+      <!-- PARTE ALBUM EXCEL -->
+      <div id="part-album" class="screen">
+        <div class="excel-header">DATABASE INVENTARIO UTENTE</div>
+        <div style="font-size: 9px; margin-bottom: 6px;">
+          <b>Polvere Totale:</b> <span id="excel-dust">0</span>
+        </div>
+        <table class="excel-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Rarità</th>
+              <th>Qtà</th>
+            </tr>
+          </thead>
+          <tbody id="excel-table-body"></tbody>
+        </table>
+        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 10px; background: #ccc; color: #000;">TORNA AL RIEPILOGO</button>
+      </div>
+
     </div>
   </div>
 
@@ -283,65 +187,195 @@
     const SUPABASE_KEY = 'sb_publishable_3JHORvzXFoBh7XVVuSqgTg__ezQdQMa';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentUser = null;
-    let userProfile = null;
+    let audioCtx = null;
+    
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playRetroSound(type) {
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'start') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'swipe') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'off') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
+      } catch(e) {}
+    }
+
+    let userData = null;
     let drawnCards = [];
+    let sessionSummary = [];
     let cardsSwipedCount = 0;
+    let currentCutsceneData = null;
+    let currentStepIndex = 0;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
 
-    async function handleLogin() {
-      const u = document.getElementById('username').value;
-      const p = document.getElementById('password').value;
-      
-      if (!u || !p) return alert("Inserisci credenziali!");
+    async function saveProfileAndGoToPart1() {
+      const uName = document.getElementById('login-username').value.trim() || 'Giocatore';
+      const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://picsum.photos/40/40?random=88';
 
       try {
-        let { data, error } = await _supabase.from('users').select('*').eq('username', u).single();
-        
-        if (!data) {
-          const res = await _supabase.from('users').insert([{ username: u, password: p }]).select().single();
-          data = res.data;
-        } else if (data.password !== p) {
-          return alert("Password errata!");
-        }
+        await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
+      } catch(e) {}
 
-        currentUser = data;
-        loadProfileAndStart();
-      } catch (e) {
-        alert("Errore di connessione!");
-      }
+      showScreen('part1');
     }
 
-    async function loadProfileAndStart() {
-      const { data } = await _supabase.from('profiles').select('*').eq('user_id', currentUser.id).single();
-      if (!data) {
-        const res = await _supabase.from('profiles').insert([{ user_id: currentUser.id, current_day: 1, dust: 0, pokebambole: 0 }]).select().single();
-        userProfile = res.data;
-      } else {
-        userProfile = data;
-      }
-      goToPart2();
-    }
-
-    async function goToPart2() {
+    function startApp() {
+      playRetroSound('start');
+      const p2 = document.getElementById('part2');
       showScreen('part2');
-      let day = userProfile.current_day || 1;
-      let { data } = await _supabase.from('cutscenes').select('*').eq('day', day).single();
-
-      if (!data) {
-        data = { image_url: 'https://picsum.photos/200/150', text_content: 'Giorno ' + day + ': La tua avventura continua!' };
-      }
-
-      document.getElementById('cutscene-img').src = data.image_url;
-      document.getElementById('cutscene-text').innerText = data.text_content;
+      p2.classList.add('turning-on');
+      
+      setTimeout(() => { 
+        p2.classList.remove('turning-on');
+        checkAndGoToPart3(); 
+      }, 1500);
     }
 
-    function goToPart3() {
+    async function checkAndGoToPart3() {
       showScreen('part3');
+      
+      try {
+        const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+        userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Giocatore', avatar_url: 'https://picsum.photos/40/40?random=88' };
+      } catch(e) {
+        userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Giocatore', avatar_url: 'https://picsum.photos/40/40?random=88' };
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (userData.last_claim_date) {
+        const lastDate = new Date(userData.last_claim_date);
+        const currDate = new Date(today);
+        const diffDays = Math.floor((currDate - lastDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 1) {
+          if (userData.dolls_count > 0) {
+            userData.dolls_count -= 1;
+            sessionSummary.push("Giorno saltato! Usata 1 Pokebambola.");
+          } else {
+            userData.streak_day = 1;
+            sessionSummary.push("Streak resettata al Giorno 1.");
+          }
+        }
+      }
+
+      if ([7, 14, 21, 28].includes(userData.streak_day)) {
+        if (userData.dolls_count < 3) {
+          userData.dolls_count += 1;
+          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +1 Pokebambola!`);
+        } else {
+          userData.dust_count += 50;
+          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +50 Polvere (Bambole Max).`);
+        }
+      }
+
+      document.getElementById('val-streak').innerText = userData.streak_day;
+      document.getElementById('val-months').innerText = userData.months_completed;
+      document.getElementById('val-dolls').innerText = userData.dolls_count;
+      document.getElementById('val-dust').innerText = userData.dust_count;
+
+      try {
+        const { data: cs } = await _supabase.from('cutscenes').select('*').eq('day', userData.streak_day).single();
+        currentCutsceneData = cs ? cs.data : null;
+      } catch(e) { currentCutsceneData = null; }
+
+      if (!currentCutsceneData || !currentCutsceneData.steps || currentCutsceneData.steps.length === 0) {
+        currentCutsceneData = {
+          background_url: '',
+          music_url: '',
+          steps: [{ dialogue: "Giorno " + userData.streak_day + ". Benvenuto [nome]!", speaker: "SISTEMA", protagonist: { show: true, x: 40, y: 50 } }]
+        };
+      }
+
+      const audioEl = document.getElementById('bg-music');
+      if (currentCutsceneData.music_url) {
+        audioEl.src = currentCutsceneData.music_url;
+        audioEl.play().catch(() => {});
+      } else {
+        audioEl.pause();
+      }
+
+      document.getElementById('cutscene-bg').style.backgroundImage = currentCutsceneData.background_url ? `url('${currentCutsceneData.background_url}')` : 'none';
+
+      currentStepIndex = 0;
+      renderStep(currentStepIndex);
+    }
+
+    function renderStep(index) {
+      const step = currentCutsceneData.steps[index];
+      const spritesLayer = document.getElementById('sprites-layer');
+      spritesLayer.innerHTML = '';
+
+      let formattedText = step.dialogue.replace(/\[nome\]/g, userData.username || 'Giocatore');
+      document.getElementById('dialogue-text').innerText = formattedText;
+      document.getElementById('speaker-name').innerText = step.speaker || '';
+
+      if (step.protagonist && step.protagonist.show) {
+        const pImg = document.createElement('img');
+        pImg.src = userData.avatar_url;
+        pImg.style.position = 'absolute';
+        pImg.style.width = '35px';
+        pImg.style.height = '35px';
+        pImg.style.left = step.protagonist.x + '%';
+        pImg.style.top = step.protagonist.y + '%';
+        pImg.style.transition = 'all 0.3s ease';
+        spritesLayer.appendChild(pImg);
+      }
+
+      if (step.extra_pngs && Array.isArray(step.extra_pngs)) {
+        step.extra_pngs.forEach(png => {
+          const img = document.createElement('img');
+          img.src = png.url;
+          img.style.position = 'absolute';
+          img.style.width = '35px';
+          img.style.height = '35px';
+          img.style.left = png.x + '%';
+          img.style.top = png.y + '%';
+          img.style.transition = 'all 0.3s ease';
+          spritesLayer.appendChild(img);
+        });
+      }
+    }
+
+    function nextCutsceneStep() {
+      currentStepIndex++;
+      if (currentStepIndex < currentCutsceneData.steps.length) {
+        renderStep(currentStepIndex);
+      } else {
+        document.getElementById('bg-music').pause();
+        goToPart4();
+      }
     }
 
     async function goToPart4() {
@@ -356,7 +390,7 @@
 
       try {
         const { data: cData } = await _supabase.from('cards').select('*');
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id').eq('user_id', currentUser.id);
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
         if(cData) allCards = cData;
         if(iData) ownedIds = iData.map(i => i.card_id);
       } catch(e) {}
@@ -383,7 +417,6 @@
 
         let pool = cardsByRarity[targetRarity];
         if (!pool || pool.length === 0) pool = allCards;
-
         return pool[Math.floor(Math.random() * pool.length)];
       }
 
@@ -424,55 +457,100 @@
       });
     }
 
-    async function performSwipe(el) {
-      if (el.dataset.swiped) return;
-      el.dataset.swiped = "true";
-      el.style.transform = 'translateY(-150%)';
-      el.style.opacity = '0';
-
-      const cardData = drawnCards[cardsSwipedCount];
+    function performSwipe(wrapper) {
+      if (wrapper.classList.contains('card-swiped')) return;
+      playRetroSound('swipe');
+      wrapper.classList.add('card-swiped');
       cardsSwipedCount++;
 
-      if (cardData.isDuplicate) {
-        userProfile.dust += 10;
-        await _supabase.from('profiles').update({ dust: userProfile.dust }).eq('user_id', currentUser.id);
-      } else {
-        await _supabase.from('user_inventory').insert([{ user_id: currentUser.id, card_id: cardData.id }]);
-      }
-
       if (cardsSwipedCount === 4) {
-        userProfile.current_day += 1;
-        await _supabase.from('profiles').update({ current_day: userProfile.current_day }).eq('user_id', currentUser.id);
         document.getElementById('btn-to-part5').style.display = 'block';
       }
     }
 
     async function goToPart5() {
-      showScreen('part5');
-      document.getElementById('dust-count').innerText = userProfile.dust;
-      document.getElementById('dolls-count').innerText = userProfile.pokebambole;
-
-      const grid = document.getElementById('album-grid');
-      grid.innerHTML = 'Caricamento...';
-
-      const { data: allCards } = await _supabase.from('cards').select('*');
-      const { data: inventory } = await _supabase.from('user_inventory').select('card_id').eq('user_id', currentUser.id);
-
-      const ownedSet = new Set(inventory ? inventory.map(i => i.card_id) : []);
-      grid.innerHTML = '';
-
-      if (allCards) {
-        allCards.forEach(c => {
-          const slot = document.createElement('div');
-          const isOwned = ownedSet.has(c.id);
-          slot.className = `album-slot ${isOwned ? '' : 'missing'}`;
-          slot.innerHTML = `
-            <div><b>${c.name}</b></div>
-            <div>${isOwned ? c.rarity : '???'}</div>
-          `;
-          grid.appendChild(slot);
-        });
+      for (const card of drawnCards) {
+        if (card.isDuplicate) {
+          userData.dust_count += 10;
+          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
+        } else {
+          try {
+            await _supabase.from('user_inventory').insert({ card_id: card.id });
+          } catch(e) {}
+          sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
+        }
       }
+
+      let nextDay = userData.streak_day + 1;
+      let nextMonths = userData.months_completed;
+      if (userData.streak_day >= 30) {
+        nextDay = 1;
+        nextMonths += 1;
+        sessionSummary.push("Mese completato! Ripartirai dal Giorno 1.");
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      try {
+        await _supabase.from('user_state').update({
+          streak_day: nextDay,
+          months_completed: nextMonths,
+          dolls_count: userData.dolls_count,
+          dust_count: userData.dust_count,
+          last_claim_date: today
+        }).eq('id', 1);
+      } catch(e) {}
+
+      const summaryBox = document.getElementById('summary-content');
+      summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 4px;">- ${item}</p>`).join('');
+
+      showScreen('part5');
+    }
+
+    function turnOff() {
+      playRetroSound('off');
+      showScreen('part2');
+      setTimeout(() => { showScreen('part6'); }, 1200);
+    }
+
+    function restart() {
+      sessionSummary = [];
+      showScreen('part0');
+    }
+
+    async function openAlbum() {
+      showScreen('part-album');
+      
+      let dustCount = userData ? userData.dust_count : 0;
+      document.getElementById('excel-dust').innerText = dustCount;
+
+      let cards = [];
+      let inventory = [];
+
+      try {
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if(cData) cards = cData;
+        if(iData) inventory = iData;
+      } catch(e) {}
+
+      const counts = {};
+      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+
+      const tbody = document.getElementById('excel-table-body');
+      tbody.innerHTML = '';
+
+      cards.forEach(card => {
+        const qty = counts[card.id] || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${card.id}</td>
+          <td>${card.name}</td>
+          <td>${card.rarity}</td>
+          <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
   </script>
 </body>
