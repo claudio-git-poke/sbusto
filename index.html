@@ -147,7 +147,6 @@
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    /* --- CORNICE GRAFICA CON SCOMPARSA DOPO 1 SECONDO --- */
     .card { 
       width: 100%; height: 100%; 
       background: #1c1c1c;
@@ -159,11 +158,10 @@
       position: relative;
     }
 
-    /* Overlay della tua cornice che svanisce dopo 1s */
     .card-frame-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background-image: url('Progetto senza titolo.jpg');
+      background-image: url('cornice.png');
       background-size: cover;
       background-position: center;
       border-radius: 8px;
@@ -371,7 +369,6 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    /* --- SUONO ACCENSIONE "BLING" TIPICO GAMEBOY & AUDIO EFFETTI --- */
     function playHighVolumeSound(type) {
       try {
         initAudio();
@@ -382,12 +379,11 @@
         masterGain.connect(audioCtx.destination);
 
         if (type === 'gb_boot') {
-          // Iconico "Bling" di avvio GameBoy
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
           osc.type = 'square';
-          osc.frequency.setValueAtTime(587.33, now); // D5
-          osc.frequency.setValueAtTime(880.00, now + 0.08); // A5
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.setValueAtTime(880.00, now + 0.08);
           
           gain.gain.setValueAtTime(0.4, now);
           gain.gain.setValueAtTime(0.4, now + 0.3);
@@ -523,7 +519,6 @@
           laserPoints.push({ x: currentLocalX, y: currentLocalY });
           drawLightningTrail();
 
-          // Tollerante: calcola lo spostamento sia verticale che orizzontale (basta il 50% della larghezza o altezza)
           let distanceX = Math.abs(currentLocalX - startXPoint);
           let distanceY = Math.abs(currentLocalY - startYPoint);
           
@@ -573,7 +568,6 @@
       }
     }
 
-    /* --- GESTIONE SCOMPARSA CORNICE DOPO 1 SECONDO --- */
     function initCardsFrameTimer() {
       setTimeout(() => {
         document.querySelectorAll('.card-frame-overlay').forEach(overlay => {
@@ -582,7 +576,6 @@
       }, 1000);
     }
 
-    /* --- RENDERING FULMINE ELETTRICO DINAMICO --- */
     function drawLightningTrail() {
       const canvas = document.getElementById('laser-canvas');
       const ctx = canvas.getContext('2d');
@@ -645,7 +638,7 @@
     }
 
     function startApp() {
-      playHighVolumeSound('gb_boot'); // Suono accensione bling tipico GameBoy
+      playHighVolumeSound('gb_boot');
       const p2 = document.getElementById('part2');
       showScreen('part2');
       p2.classList.add('turning-on');
@@ -684,7 +677,7 @@
         cutsceneData = {
           background: '',
           music: '',
-          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [216, 111], path: [[216,111], [250, 111]] }],
+          actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
           events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
         };
       }
@@ -715,22 +708,44 @@
         audioEl.pause();
       }
 
+      // Forza il ricalcolo delle dimensioni del layer sprite basato sul contenitore reale
       const stage = document.getElementById('screen-wrapper');
-      const scaleX = stage.clientWidth / 480;
-      const scaleY = stage.clientHeight / 270;
+      const baseWidth = 480;
+      const baseHeight = 270;
+      const currentWidth = stage.clientWidth || 480;
+      const currentHeight = stage.clientHeight || 270;
+      const scaleX = currentWidth / baseWidth;
+      const scaleY = currentHeight / baseHeight;
 
       const actorElements = {};
+      const actorCurrentPos = {};
+
       (cutsceneData.actors || []).forEach(actor => {
         const img = document.createElement('img');
         img.className = 'actor-sprite';
         img.id = `actor-sprite-${actor.id}`;
-        img.src = actor.asset ? `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}` : userData.avatar_url;
-        img.style.left = `${actor.pos[0] * scaleX}px`;
-        img.style.top = `${actor.pos[1] * scaleY}px`;
+        
+        // Risoluzione corretta dell'asset dell'attore (controlla sia Supabase che URL diretti)
+        let assetUrl = userData.avatar_url;
+        if (actor.asset) {
+          if (actor.asset.startsWith('http')) {
+            assetUrl = actor.asset;
+          } else {
+            assetUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
+          }
+        }
+        img.src = assetUrl;
+
+        const startX = actor.pos ? actor.pos[0] : 100;
+        const startY = actor.pos ? actor.pos[1] : 100;
+        actorCurrentPos[actor.id] = { x: startX, y: startY };
+
+        img.style.left = `${startX * scaleX}px`;
+        img.style.top = `${startY * scaleY}px`;
         img.style.width = `${48 * scaleX}px`;
         img.style.height = `${48 * scaleY}px`;
         spritesLayer.appendChild(img);
-        actorElements[actor.id] = { element: img, actor: actor };
+        actorElements[actor.id] = img;
       });
 
       if (cutsceneTimer) clearInterval(cutsceneTimer);
@@ -738,26 +753,30 @@
       cutsceneTimer = setInterval(() => {
         if (isDialogueActive) return;
 
-        Object.values(actorElements).forEach(({ element, actor }) => {
-          if (actor.path && actor.path.length > 1) {
-            const progress = Math.min(cutsceneTime / 8.0, 1.0);
-            const targetIndex = Math.min(Math.floor(progress * (actor.path.length - 1)), actor.path.length - 2);
-            const p1 = actor.path[targetIndex];
-            const p2 = actor.path[targetIndex + 1];
-            const localProg = (progress * (actor.path.length - 1)) - targetIndex;
-
-            const currentX = p1[0] + (p2[0] - p1[0]) * localProg;
-            const currentY = p1[1] + (p2[1] - p1[1]) * localProg;
-
-            element.style.left = `${currentX * scaleX}px`;
-            element.style.top = `${currentY * scaleY}px`;
-          }
-        });
-
+        // Gestione degli eventi di movimento del JSON (type: "move")
         (cutsceneData.events || []).forEach(ev => {
+          if (ev.type === 'move') {
+            const elapsed = cutsceneTime - ev.start;
+            if (elapsed >= 0 && elapsed <= ev.duration) {
+              const progress = Math.min(elapsed / ev.duration, 1.0);
+              // Trova l'attore associato per nome o ID
+              const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === ev.actor.toLowerCase() || k === ev.actor);
+              if (targetActorKey && ev.from && ev.to) {
+                const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
+                const currentY = ev.from[1] + (ev.to[1] - ev.from[1]) * progress;
+                actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
+                
+                const el = actorElements[targetActorKey];
+                el.style.left = `${currentX * scaleX}px`;
+                el.style.top = `${currentY * scaleY}px`;
+              }
+            }
+          }
+
+          // Gestione dialoghi
           if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
-            triggeredEvents.add(ev.id);
             if (ev.type === 'dialogue') {
+              triggeredEvents.add(ev.id);
               isDialogueActive = true;
               document.getElementById('speaker-name').innerText = ev.speaker;
               document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Allenatore');
