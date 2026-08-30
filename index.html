@@ -24,8 +24,8 @@
       max-width: 640px;
       height: 92vh;
       max-height: 400px;
-      background: #d32f2f;
-      border: 6px solid #8b0000;
+      background: #cc0000;
+      border: 6px solid #222;
       border-radius: 20px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       display: flex;
@@ -37,9 +37,7 @@
     }
 
     @media (max-aspect-ratio: 1/1) {
-      #gameboy-frame {
-        max-height: 80vh;
-      }
+      #gameboy-frame { max-height: 80vh; }
     }
     
     #frame-label {
@@ -59,7 +57,7 @@
       max-width: 100%;
       max-height: 100%;
       background: #000;
-      border: 4px solid #333;
+      border: 4px solid #222;
       border-radius: 8px;
       overflow: hidden;
       position: relative;
@@ -86,30 +84,45 @@
 
     .gb-screen { background: #9bbc0f; color: #0f380f; }
 
-    /* CSS AGGIORNATO PER SBUSTATA E DRAG REALISTICO (PARTE 4) */
+    /* PARTE 4: BUSTINA A TEMA POKEMON & ORIZZONTALE */
     .booster-pack {
-      width: 120px; height: 170px; background: linear-gradient(180deg, #ff4d4d 0%, #b30000 100%);
-      border: 3px solid #fff; border-radius: 8px; position: relative; cursor: grab; display: flex;
+      width: 120px; height: 170px; background: linear-gradient(135deg, #ff0000 0%, #cc0000 50%, #111 50%, #222 100%);
+      border: 3px solid #ffcc00; border-radius: 8px; position: relative; cursor: grab; display: flex;
       flex-direction: column; box-shadow: 0 8px 16px rgba(0,0,0,0.6); touch-action: none;
     }
     .booster-top {
-      height: 30px; background: #800000; border-bottom: 2px dashed #ffcccc; display: flex;
-      align-items: center; justify-content: center; font-size: 6px; color: #fff;
+      height: 25px; background: #fff; border-bottom: 2px dashed #cc0000; display: flex;
+      align-items: center; justify-content: center; font-size: 5px; color: #000; font-weight: bold;
       transition: transform 0.4s ease, opacity 0.4s ease; border-radius: 4px 4px 0 0;
     }
     .booster-bottom {
-      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px;
-      font-weight: bold; color: #fff; text-shadow: 1px 1px 0 #000; flex-direction: column;
+      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 8px;
+      font-weight: bold; color: #ffcc00; text-shadow: 1px 1px 0 #000; flex-direction: column;
     }
-    .booster-torn .booster-top { transform: translateY(-80px) rotate(-10deg); opacity: 0; }
+    .booster-torn .booster-top { transform: translateX(120px) rotate(25deg); opacity: 0; }
+
+    /* PARTICELLE / CORIANDOLI / SBRILLUCCHIO */
+    #sparkles-container {
+      position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; z-index: 2;
+    }
+    .sparkle {
+      position: absolute; width: 6px; height: 6px; background: #fff; border-radius: 50%;
+      animation: floatSparkle 2s infinite ease-in-out;
+    }
+    .sparkle.gold { background: #ffcc00; box-shadow: 0 0 8px #ffcc00; width: 8px; height: 8px; }
+    @keyframes floatSparkle {
+      0% { transform: translateY(0) scale(0.5); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+    }
     
-    .card-container { position: relative; width: 140px; height: 190px; margin-top: 5px; }
+    .card-container { position: relative; width: 140px; height: 190px; margin-top: 5px; z-index: 5; }
     .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; }
     .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; /* previene bug col drag */ }
+    .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; }
     .card img { width: 100%; height: 90px; object-fit: cover; border: 2px solid #0f380f; }
     .card-title { font-size: 7px; color: #0f380f; }
     .card-rarity { font-size: 5px; background: #306230; color: #9bbc0f; padding: 2px 4px; }
@@ -140,17 +153,17 @@
 <body>
 
   <div id="gameboy-frame">
-    <div id="frame-label">[ GAMEBOY PLAYER 16:9 ]</div>
+    <div id="frame-label">[ POKEMON CARD SYNC ]</div>
 
     <div id="screen-wrapper">
 
       <div id="part0" class="screen active">
-        <div style="margin-bottom: 6px; color: #9bbc0f;">CONFIGURAZIONE</div>
-        <label>NOME UTENTE:</label>
-        <input type="text" id="login-username" value="Giocatore">
-        <label>URL AVATAR (PNG):</label>
+        <div style="margin-bottom: 6px; color: #ffcc00;">CONFIGURAZIONE ALLENATORE</div>
+        <label>NOME:</label>
+        <input type="text" id="login-username" value="Rosso">
+        <label>AVATAR (URL PNG):</label>
         <input type="text" id="login-avatar" value="https://picsum.photos/40/40?random=88">
-        <button onclick="saveProfileAndGoToPart1()">SALVA E VAI</button>
+        <button onclick="saveProfileAndGoToPart1()">REGISTRATI</button>
       </div>
 
       <div id="part1" class="screen">
@@ -176,42 +189,44 @@
         <audio id="bg-music" loop></audio>
       </div>
 
-      <!-- NUOVA PARTE 4 INTERATTIVA -->
-      <div id="part4" class="screen" style="background: #000; color: #fff; overflow: hidden;">
+      <!-- PARTE 4 AGGIORNATA CON STRAPPO ORIZZONTALE E SFARLLECCIO LEGGENDARIO -->
+      <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
         
-        <!-- FASE 1: BUSTINA -->
-        <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="font-size: 6px; margin-bottom: 15px; color: #aaa;">TRAScina IN ALTO PER STRAPPARE</div>
+        <div id="sparkles-container"></div>
+
+        <!-- FASE 1: BUSTINA DA STRAPPARE ORIZZONTALMENTE -->
+        <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
+          <div style="font-size: 5px; margin-bottom: 12px; color: #ffcc00;">TRAScina A DESTRA PER STRAPPARE LA BUSTINA</div>
           <div class="booster-pack" id="booster-pack">
-            <div class="booster-top">TIRA SU</div>
+            <div class="booster-top">➡ STRAPPA</div>
             <div class="booster-bottom">
-              <div>CARD SYNC</div>
-              <div style="font-size: 5px; margin-top: 5px; font-weight: normal;">BOOSTER PACK</div>
+              <div>PACCO</div>
+              <div style="font-size: 5px; margin-top: 5px; font-weight: normal; color:#fff;">POKEMON</div>
             </div>
           </div>
         </div>
 
-        <!-- FASE 2: CARTE -->
-        <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-          <div style="font-size: 6px; margin-bottom: 4px;">TIENI PREMUTO E SOLLEVA (DRAG)</div>
+        <!-- FASE 2: CARTE DA SOLLEVARE VERTICALMENTE -->
+        <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
+          <div style="font-size: 5px; margin-bottom: 4px; color: #ffcc00;">SOLLEVA VERSO L'ALTO (SWIPE UP)</div>
           <div class="card-container" id="cards-stack"></div>
         </div>
 
         <!-- FASE 3: TABELLA RIEPILOGO EXCEL INTERNA -->
-        <div id="part4-summary" style="display: none; background: #fff; color: #000; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto;">
-          <div class="excel-header" style="text-align: center;">RIEPILOGO SBUSTATA</div>
+        <div id="part4-summary" style="display: none; background: #fff; color: #000; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto; z-index: 10;">
+          <div class="excel-header" style="text-align: center;">RIEPILOGO SBUSTATA POKEMON</div>
           <table class="excel-table">
             <thead>
               <tr>
                 <th>Nome</th>
                 <th>Rarità</th>
-                <th>Qtà</th>
-                <th>Origine/Note</th>
+                <th>Qtà Tot</th>
+                <th>Note</th>
               </tr>
             </thead>
             <tbody id="part4-summary-body"></tbody>
           </table>
-          <button onclick="finalizePackAndGoToPart5()" style="background: #d32f2f; color: #fff; border: 2px solid #8b0000; width: 100%; margin-top: 10px;">ESCI E SALVA</button>
+          <button onclick="finalizePackAndGoToPart5()" style="background: #cc0000; color: #fff; border: 2px solid #222; width: 100%; margin-top: 10px;">CONTINUA AL LOG</button>
         </div>
 
       </div>
@@ -228,7 +243,7 @@
       </div>
 
       <div id="part-album" class="screen">
-        <div class="excel-header">DATABASE INVENTARIO UTENTE</div>
+        <div class="excel-header">DATABASE INVENTARIO POKEMON</div>
         <div style="font-size: 8px; margin-bottom: 6px;">
           <b>Polvere Totale:</b> <span id="excel-dust">0</span>
         </div>
@@ -295,11 +310,12 @@
     }
 
     /* ----------------------------------------------------
-       GESTIONE EVENTI DRAG/HOLD GLOBALE PER PARTE 4
+       GESTIONE DRAG/HOLD (ORIZZONTALE PER BUSTINA, VERTICALE PER CARTE)
     ---------------------------------------------------- */
     let dragObj = null;
+    let dragStartX = 0;
     let dragStartY = 0;
-    let dragType = ''; // 'pack' o 'card'
+    let dragType = ''; 
 
     document.addEventListener('touchstart', handleDragStart, {passive: false});
     document.addEventListener('touchmove', handleDragMove, {passive: false});
@@ -316,38 +332,40 @@
         dragType = 'pack';
         dragObj = target;
       } else if (target.classList.contains('card-wrapper')) {
-        if (target.classList.contains('card-swiped')) return; // ignora se già swipata
+        if (target.classList.contains('card-swiped')) return; 
         dragType = 'card';
         dragObj = target;
         dragObj.classList.add('dragging');
         dragObj.classList.remove('snap-back');
       }
+      dragStartX = e.clientX || e.touches[0].clientX;
       dragStartY = e.clientY || e.touches[0].clientY;
     }
 
     function handleDragMove(e) {
       if (!dragObj) return;
-      
-      // Blocca lo scroll nativo del browser mentre interagiamo
       if (e.cancelable) e.preventDefault(); 
 
+      let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
       let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-      if (clientY === null) return;
+      if (clientX === null || clientY === null) return;
+
+      let dx = clientX - dragStartX;
       let dy = clientY - dragStartY;
 
       if (dragType === 'pack') {
-        // Se si tira in alto per strappare
-        if (dy < -40) {
+        // Strappo orizzontale a destra
+        if (dx > 50) {
           dragObj.classList.add('booster-torn');
           playRetroSound('swipe');
-          dragObj = null; // Fine tracking pack
+          dragObj = null; 
           setTimeout(() => {
             document.getElementById('booster-container').style.display = 'none';
             document.getElementById('cards-area').style.display = 'flex';
           }, 600);
         }
       } else if (dragType === 'card') {
-        if (dy > 0) dy = 0; // Permette solo il sollevamento (swipe up)
+        if (dy > 0) dy = 0; // Solo movimento in alto
         dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
       }
     }
@@ -359,12 +377,10 @@
         let clientY = e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : dragStartY);
         let dy = clientY - dragStartY;
 
-        // Soglia per confermare lo swipe
         if (dy < -80) { 
           dragObj.style.transform = ''; 
           performSwipe(dragObj);
         } else { 
-          // Rilasciato troppo presto: torna in posizione elastica
           dragObj.classList.add('snap-back');
           dragObj.style.transform = `translateY(0px) rotate(0deg)`;
         }
@@ -379,8 +395,6 @@
     let drawnCards = [];
     let sessionSummary = [];
     let cardsSwipedCount = 0;
-    
-    // Array pronto per raccogliere eventuali doni passati dalla Cutscene in futuro
     let extraRewards = []; 
     
     let cutsceneData = null;
@@ -395,7 +409,7 @@
     }
 
     async function saveProfileAndGoToPart1() {
-      const uName = document.getElementById('login-username').value.trim() || 'Giocatore';
+      const uName = document.getElementById('login-username').value.trim() || 'Rosso';
       const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://picsum.photos/40/40?random=88';
 
       try {
@@ -422,9 +436,9 @@
       
       try {
         const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
-        userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Giocatore', avatar_url: 'https://picsum.photos/40/40?random=88' };
+        userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://picsum.photos/40/40?random=88' };
       } catch(e) {
-        userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Giocatore', avatar_url: 'https://picsum.photos/40/40?random=88' };
+        userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://picsum.photos/40/40?random=88' };
       }
 
       const today = new Date().toISOString().split('T')[0];
@@ -476,7 +490,7 @@
           background: '',
           music: '',
           actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-          events: [{ id: 1, type: 'dialogue', speaker: 'SISTEMA', text: `Giorno ${userData.streak_day}: Benvenuto ${userData.username || 'Giocatore'}!`, start: 0, duration: 3 }]
+          events: [{ id: 1, type: 'dialogue', speaker: 'PROF', text: `Giorno ${userData.streak_day}: Bentornato, ${userData.username || 'Allenatore'}!`, start: 0, duration: 3 }]
         };
       }
 
@@ -506,7 +520,6 @@
         audioEl.pause();
       }
 
-      // SCALA 16:9 BASATA SU BASE 480x270
       const stage = document.getElementById('screen-wrapper');
       const scaleX = stage.clientWidth / 480;
       const scaleY = stage.clientHeight / 270;
@@ -556,7 +569,7 @@
             if (ev.type === 'dialogue') {
               isDialogueActive = true;
               document.getElementById('speaker-name').innerText = ev.speaker;
-              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Giocatore');
+              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Allenatore');
               document.getElementById('dialogue-box').style.display = 'block';
             }
           }
@@ -582,7 +595,6 @@
     async function goToPart4() {
       showScreen('part4');
       
-      // Setup iniziale visivo Parte 4
       document.getElementById('booster-container').style.display = 'flex';
       document.getElementById('cards-area').style.display = 'none';
       document.getElementById('part4-summary').style.display = 'none';
@@ -604,8 +616,7 @@
         if (cData) allCards = cData;
         if (iData) ownedIds = iData.map(i => i.card_id);
       } catch(e) {
-        // ALERT PER COPIA INCOLLA COME RICHIESTO (Regola 8)
-        alert(`ERRORE TECNICO SUPABASE (Lettura Dati)\n========================\nMessaggio: ${e.message}\nDettagli: ${e.details || 'N/A'}\n\nCopia questo popup per il fix.`);
+        alert(`ERRORE SUPABASE: ${e.message}`);
       }
 
       if (allCards.length === 0) {
@@ -634,16 +645,22 @@
       }
 
       drawnCards = [];
+      let hasLegendary = false;
+
       for (let i = 0; i < 4; i++) {
         const randomCard = getRandomCardByRarity();
+        if (randomCard.rarity === 'Leggendaria') hasLegendary = true;
         const isDuplicate = ownedIds.includes(randomCard.id);
         drawnCards.push({ ...randomCard, isDuplicate });
       }
 
+      // Genera sbrilluccichio / coriandoli (dorati se c'è una carta leggendaria)
+      generateSparkles(hasLegendary);
+
       drawnCards.forEach((card, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'card-wrapper';
-        wrapper.style.zIndex = 4 - index; // La prima estratta sta sopra
+        wrapper.style.zIndex = 4 - index; 
         
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
 
@@ -659,13 +676,26 @@
       });
     }
 
+    function generateSparkles(isLegendary) {
+      const container = document.getElementById('sparkles-container');
+      container.innerHTML = '';
+      for (let i = 0; i < 20; i++) {
+        const s = document.createElement('div');
+        s.className = 'sparkle' + (isLegendary ? ' gold' : '');
+        s.style.left = Math.random() * 100 + '%';
+        s.style.top = (80 + Math.random() * 20) + '%';
+        s.style.animationDelay = (Math.random() * 2) + 's';
+        s.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+        container.appendChild(s);
+      }
+    }
+
     function performSwipe(wrapper) {
       if (wrapper.classList.contains('card-swiped')) return;
       playRetroSound('swipe');
       wrapper.classList.add('card-swiped');
       cardsSwipedCount++;
 
-      // Quando l'ultima carta vola via, mostra la tabella Excel della Parte 4
       if (cardsSwipedCount === 4) {
         setTimeout(() => {
           document.getElementById('cards-area').style.display = 'none';
@@ -674,34 +704,51 @@
       }
     }
 
-    function showPart4Summary() {
+    async function showPart4Summary() {
       const summaryArea = document.getElementById('part4-summary');
       const tbody = document.getElementById('part4-summary-body');
       tbody.innerHTML = '';
 
-      // Popola tabella carte
+      // Recupera inventario attuale da Supabase per calcolare le quantità aggiornate in tempo reale
+      let inventory = [];
+      try {
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if (iData) inventory = iData;
+      } catch(e) {}
+
+      const counts = {};
+      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+
+      // Simula momentaneamente l'aggiunta delle nuove carte non doppione per mostrarle corrette nel riepilogo
+      const tempCounts = { ...counts };
+      drawnCards.forEach(card => {
+        if (!card.isDuplicate) {
+          tempCounts[card.id] = (tempCounts[card.id] || 0) + 1;
+        }
+      });
+
       drawnCards.forEach(card => {
         let note = card.isDuplicate ? '+10 Polvere' : 'Nuova!';
         let color = card.isDuplicate ? '#8b0500' : '#306230';
+        let totalQty = tempCounts[card.id] || 1;
         
         tbody.innerHTML += `
           <tr>
             <td>${card.name}</td>
             <td>${card.rarity}</td>
-            <td>1</td>
-            <td style="color: ${color}; font-weight: bold; font-size: 6px;">${note} (Sbustata)</td>
+            <td><b>${totalQty}</b></td>
+            <td style="color: ${color}; font-weight: bold; font-size: 6px;">${note}</td>
           </tr>
         `;
       });
 
-      // Aggiunta dinamica per eventuali futuri regali da Cutscene (Regola 9)
       extraRewards.forEach(reward => {
         tbody.innerHTML += `
           <tr>
             <td>${reward.name}</td>
             <td>${reward.rarity}</td>
-            <td>${reward.qty}</td>
-            <td style="color: #0f380f; font-weight: bold; font-size: 6px;">Regalo Cutscene!</td>
+            <td><b>${reward.qty}</b></td>
+            <td style="color: #0f380f; font-weight: bold; font-size: 6px;">Regalo!</td>
           </tr>
         `;
       });
@@ -710,17 +757,15 @@
     }
 
     async function finalizePackAndGoToPart5() {
-      // SALVATAGGIO INVENTARIO E RISORSE NEL DATABASE
       for (const card of drawnCards) {
         if (card.isDuplicate) {
           userData.dust_count += 10;
           sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
         } else {
           try {
-            const { error: insErr } = await _supabase.from('user_inventory').insert({ card_id: card.id });
-            if(insErr) throw insErr;
+            await _supabase.from('user_inventory').insert({ card_id: card.id });
           } catch(e) {
-             alert(`ERRORE TECNICO SUPABASE (Scrittura Carta)\n========================\nMessaggio: ${e.message}\n\nCopia e segnala.`);
+             alert(`ERRORE SCRITTURA: ${e.message}`);
           }
           sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
         }
@@ -737,19 +782,15 @@
       const today = new Date().toISOString().split('T')[0];
 
       try {
-        const { error: updErr } = await _supabase.from('user_state').update({
+        await _supabase.from('user_state').update({
           streak_day: nextDay,
           months_completed: nextMonths,
           dolls_count: userData.dolls_count,
           dust_count: userData.dust_count,
           last_claim_date: today
         }).eq('id', 1);
-        if(updErr) throw updErr;
-      } catch(e) {
-         alert(`ERRORE TECNICO SUPABASE (Aggiornamento Stato)\n========================\nMessaggio: ${e.message}\n\nCopia e segnala.`);
-      }
+      } catch(e) {}
 
-      // Aggiorna visivamente il text-log nella Parte 5
       const summaryBox = document.getElementById('summary-content');
       summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
 
@@ -764,7 +805,7 @@
 
     function restart() {
       sessionSummary = [];
-      extraRewards = []; // reset regali extra
+      extraRewards = [];
       showScreen('part0');
     }
 
