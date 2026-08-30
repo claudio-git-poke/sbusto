@@ -1,470 +1,87 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GameBoy Streak</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body { 
-      background: #1a1a1a; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      min-height: 100vh; 
-      font-family: 'Press Start 2P', monospace;
-      padding: 10px;
+async function goToPart4() {
+  showScreen('part4');
+  const container = document.getElementById('cards-stack');
+  container.innerHTML = '';
+  cardsSwipedCount = 0;
+  document.getElementById('btn-to-part5').style.display = 'none';
+
+  let allCards = [];
+  let ownedIds = [];
+
+  try {
+    const { data: cData } = await _supabase.from('cards').select('*');
+    const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+    if(cData) allCards = cData;
+    if(iData) ownedIds = iData.map(i => i.card_id);
+  } catch(e) {}
+
+  if (allCards.length === 0) {
+    allCards = [{ id: 1, name: 'Carta Prova', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+  }
+
+  // Raggruppa le carte per rarità
+  const cardsByRarity = {
+    'Comune': allCards.filter(c => c.rarity === 'Comune'),
+    'Rara': allCards.filter(c => c.rarity === 'Rara'),
+    'Epica': allCards.filter(c => c.rarity === 'Epica'),
+    'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
+  };
+
+  // Funzione per estrarre una carta in base alle percentuali
+  function getRandomCardByRarity() {
+    const rand = Math.random() * 100; // Numero casuale tra 0 e 100
+    let targetRarity = 'Comune';
+
+    if (rand < 5) {
+      targetRarity = 'Leggendaria'; // 5% chance
+    } else if (rand < 15) {
+      targetRarity = 'Epica';       // 10% chance
+    } else if (rand < 40) {
+      targetRarity = 'Rara';        // 25% chance
+    } else {
+      targetRarity = 'Comune';      // 60% chance
     }
 
-    /* =========================================================
-       FRAME PROVVISORIO GAMEBOY (RESPONSIVE & ADATTABILE)
-       Per l'immagine ufficiale sostituisci 'background' con:
-       background: url('IL_TUO_PATH.png') no-repeat center/contain;
-       ========================================================= */
-    #gameboy-frame {
-      width: 100%;
-      max-width: 380px;
-      height: 90vh;
-      max-height: 680px;
-      background: #d32f2f; /* RED FRAME PROVVISORIO */
-      border: 6px solid #8b0000;
-      border-radius: 20px 20px 50px 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      padding: 15px;
-    }
+    // Se non ci sono carte per quella rarità, prende una lista di ripiego
+    let pool = cardsByRarity[targetRarity];
+    if (!pool || pool.length === 0) pool = allCards;
+
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  drawnCards = [];
+  for (let i = 0; i < 4; i++) {
+    const randomCard = getRandomCardByRarity();
+    const isDuplicate = ownedIds.includes(randomCard.id);
+    drawnCards.push({ ...randomCard, isDuplicate });
+  }
+
+  drawnCards.forEach((card, index) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card-wrapper';
+    wrapper.style.zIndex = 4 - index;
     
-    #frame-label {
-      position: absolute;
-      top: 12px;
-      color: #fff;
-      font-size: 7px;
-      letter-spacing: 1px;
-      text-align: center;
-    }
+    let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE (+10 Polvere)</div>` : '';
 
-    /* Schermo di gioco interno proporzionale */
-    #screen-wrapper {
-      width: 90%;
-      height: 75%;
-      background: #000;
-      border: 4px solid #333;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .screen { width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 12px; box-sizing: border-box; }
-    .active { display: flex; }
-
-    #part1 { background: #111; color: #fff; }
-    
-    /* Animazione Accensione GameBoy */
-    #part2 { background: #000; }
-    .turning-on { animation: turnOn 1.5s forwards; }
-    @keyframes turnOn {
-      0% { background: #000; opacity: 0; }
-      50% { background: #8b956d; opacity: 0.5; }
-      100% { background: #9bbc0f; opacity: 1; }
-    }
-
-    .gb-screen { background: #9bbc0f; color: #0f380f; }
-
-    /* Carte e Swipe (Parte 4) */
-    .card-container { position: relative; width: 160px; height: 230px; margin-top: 10px; }
-    .card-wrapper { position: absolute; width: 100%; height: 100%; transition: transform 0.4s ease, opacity 0.4s ease; cursor: grab; }
-    .card-swiped { transform: translateY(-350px) rotate(-10deg) !important; opacity: 0 !important; pointer-events: none; }
-    
-    .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
-    .card img { width: 100%; height: 110px; object-fit: cover; border: 2px solid #0f380f; }
-    .card-title { font-size: 8px; color: #0f380f; }
-    .card-rarity { font-size: 6px; background: #306230; color: #9bbc0f; padding: 2px 4px; }
-    .duplicate-tag { font-size: 6px; color: #8b0500; font-weight: bold; }
-
-    /* PARTE ALBUM STILE EXCEL */
-    #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
-    .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; }
-    .excel-table { width: 100%; border-collapse: collapse; font-size: 9px; }
-    .excel-table th, .excel-table td { border: 1px solid #ccc; padding: 4px; text-align: left; }
-    .excel-table th { background: #e6e6e6; }
-    .excel-table tr:nth-child(even) { background: #f9f9f9; }
-
-    /* Bottoni Stile Retro */
-    button { font-family: 'Press Start 2P', monospace; padding: 10px 12px; font-size: 8px; cursor: pointer; background: #8b956d; color: #0f380f; border: 3px solid #0f380f; box-shadow: 2px 2px 0px #306230; margin-top: 8px; }
-    button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #306230; }
-    
-    .btn-small { padding: 6px 8px; font-size: 7px; }
-    .stat-box { font-size: 6px; margin-bottom: 8px; line-height: 10px; text-align: left; width: 100%; }
-  </style>
-</head>
-<body>
-
-  <!-- FRAME GAMEBOY RED PROVVISORIO -->
-  <div id="gameboy-frame">
-    <div id="frame-label">[ FRAME ROSSO PROVVISORIO ]</div>
-
-    <!-- DISPLAY GAMEBOY -->
-    <div id="screen-wrapper">
-
-      <!-- PARTE 1: START -->
-      <div id="part1" class="screen active">
-        <button id="start-btn" onclick="startApp()">START</button>
+    wrapper.innerHTML = `
+      <div class="card">
+        <div class="card-title">${card.name}</div>
+        <img src="${card.image_url}" alt="card">
+        <div class="card-rarity">${card.rarity}</div>
+        ${dupHTML}
       </div>
+    `;
 
-      <!-- PARTE 2: ACCENSIONE -->
-      <div id="part2" class="screen"></div>
+    let startY = 0;
+    wrapper.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+    wrapper.addEventListener('touchend', e => {
+      if (startY - e.changedTouches[0].clientY > 30) performSwipe(wrapper);
+    });
+    wrapper.addEventListener('mousedown', e => { startY = e.clientY; });
+    wrapper.addEventListener('mouseup', e => {
+      if (startY - e.clientY > 30) performSwipe(wrapper);
+    });
 
-      <!-- PARTE 3: CUTSCENE -->
-      <div id="part3" class="screen gb-screen">
-        <div class="stat-box">
-          <div>STREAK: <span id="val-streak">1</span> GG</div>
-          <div>MESI: <span id="val-months">0</span> | POLVERE: <span id="val-dust">0</span></div>
-          <div>BAMBOLE: <span id="val-dolls">0</span>/3</div>
-        </div>
-        <h2 id="day-title" style="font-size: 10px; margin-bottom: 6px;">GIORNO X</h2>
-        <img id="cutscene-img" src="" style="max-width: 120px; max-height: 80px; border: 2px solid #0f380f; display:none; margin: 4px 0;">
-        <p id="cutscene-text" style="font-size: 7px; line-height: 10px; max-width: 90%; margin: 4px 0;"></p>
-        <button onclick="goToPart4()">CONTINUA</button>
-      </div>
-
-      <!-- PARTE 4: SBUSTATA -->
-      <div id="part4" class="screen" style="background: #000; color: #fff;">
-        <div style="font-size: 7px; margin-bottom: 4px;">SCORRI IN ALTO (SWIPE)</div>
-        <div class="card-container" id="cards-stack"></div>
-        <button id="btn-to-part5" onclick="goToPart5()" style="display:none; margin-top: 10px;">RIEPILOGO</button>
-      </div>
-
-      <!-- PARTE 5: RIEPILOGO & ALBUM EXCEL -->
-      <div id="part5" class="screen gb-screen">
-        <h3 style="font-size: 9px; margin-bottom: 6px;">RIEPILOGO</h3>
-        <div id="summary-content" style="font-size: 6px; line-height: 11px; max-width: 90%;"></div>
-        
-        <!-- Tasto Album/Excel posizionato nel riepilogo -->
-        <button onclick="openAlbum()" class="btn-small" style="background: #306230; color: #9bbc0f; margin-top: 12px;">VEDI ALBUM EXCEL</button>
-        <button onclick="turnOff()">SPEGNI</button>
-      </div>
-
-      <!-- PARTE 6: FINE -->
-      <div id="part6" class="screen" style="background: #000;">
-        <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
-      </div>
-
-      <!-- PARTE ALBUM (STILE EXCEL) -->
-      <div id="part-album" class="screen">
-        <div class="excel-header">DATABASE INVENTARIO UTENTE</div>
-        <div style="font-size: 9px; margin-bottom: 6px;">
-          <b>Polvere Totale:</b> <span id="excel-dust">0</span>
-        </div>
-        <table class="excel-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nome</th>
-              <th>Rarità</th>
-              <th>Qtà</th>
-            </tr>
-          </thead>
-          <tbody id="excel-table-body"></tbody>
-        </table>
-        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 10px; background: #ccc; color: #000;">TORNA AL RIEPILOGO</button>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
-    // CONFIGURAZIONE SUPABASE
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let audioCtx = null;
-    
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    function playRetroSound(type) {
-      try {
-        initAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        if (type === 'start') {
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-          osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-        } else if (type === 'swipe') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-        } else if (type === 'off') {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-        }
-      } catch(e) { console.log('Audio error:', e); }
-    }
-
-    let userData = null;
-    let drawnCards = [];
-    let sessionSummary = [];
-    let cardsSwipedCount = 0;
-
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-
-    function startApp() {
-      playRetroSound('start');
-      const p2 = document.getElementById('part2');
-      showScreen('part2');
-      p2.classList.add('turning-on');
-      
-      setTimeout(() => { 
-        p2.classList.remove('turning-on');
-        checkAndGoToPart3(); 
-      }, 1500);
-    }
-
-    async function checkAndGoToPart3() {
-      showScreen('part3');
-      
-      try {
-        const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
-        userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0 };
-      } catch(e) {
-        userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0 };
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-      
-      if (userData.last_claim_date) {
-        const lastDate = new Date(userData.last_claim_date);
-        const currDate = new Date(today);
-        const diffDays = Math.floor((currDate - lastDate) / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 1) {
-          if (userData.dolls_count > 0) {
-            userData.dolls_count -= 1;
-            sessionSummary.push("Giorno saltato! Usata 1 Pokebambola.");
-          } else {
-            userData.streak_day = 1;
-            sessionSummary.push("Streak resettata al Giorno 1.");
-          }
-        }
-      }
-
-      if ([7, 14, 21, 28].includes(userData.streak_day)) {
-        if (userData.dolls_count < 3) {
-          userData.dolls_count += 1;
-          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +1 Pokebambola!`);
-        } else {
-          userData.dust_count += 50;
-          sessionSummary.push(`Bonus Giorno ${userData.streak_day}: +50 Polvere (Bambole Max).`);
-        }
-      }
-
-      document.getElementById('val-streak').innerText = userData.streak_day;
-      document.getElementById('val-months').innerText = userData.months_completed;
-      document.getElementById('val-dolls').innerText = userData.dolls_count;
-      document.getElementById('val-dust').innerText = userData.dust_count;
-      document.getElementById('day-title').innerText = `GIORNO ${userData.streak_day}`;
-
-      try {
-        const { data: cutscene } = await _supabase.from('cutscenes').select('*').eq('day', userData.streak_day).single();
-        if (cutscene) {
-          document.getElementById('cutscene-text').innerText = cutscene.text;
-          if (cutscene.image_url) {
-            const img = document.getElementById('cutscene-img');
-            img.src = cutscene.image_url;
-            img.style.display = 'block';
-          }
-        } else {
-          document.getElementById('cutscene-text').innerText = "Continua la tua avventura!";
-          document.getElementById('cutscene-img').style.display = 'none';
-        }
-      } catch(e) {
-        document.getElementById('cutscene-text').innerText = "Continua la tua avventura!";
-      }
-    }
-
-    async function goToPart4() {
-      showScreen('part4');
-      const container = document.getElementById('cards-stack');
-      container.innerHTML = '';
-      cardsSwipedCount = 0;
-      document.getElementById('btn-to-part5').style.display = 'none';
-
-      let allCards = [];
-      let ownedIds = [];
-
-      try {
-        const { data: cData } = await _supabase.from('cards').select('*');
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if(cData) allCards = cData;
-        if(iData) ownedIds = iData.map(i => i.card_id);
-      } catch(e) {}
-
-      if (allCards.length === 0) {
-        allCards = [{ id: 1, name: 'Carta Prova', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
-      }
-
-      drawnCards = [];
-      for (let i = 0; i < 4; i++) {
-        const randomCard = allCards[Math.floor(Math.random() * allCards.length)];
-        const isDuplicate = ownedIds.includes(randomCard.id);
-        drawnCards.push({ ...randomCard, isDuplicate });
-      }
-
-      drawnCards.forEach((card, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'card-wrapper';
-        wrapper.style.zIndex = 4 - index;
-        
-        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE (+10 Polvere)</div>` : '';
-
-        wrapper.innerHTML = `
-          <div class="card">
-            <div class="card-title">${card.name}</div>
-            <img src="${card.image_url}" alt="card">
-            <div class="card-rarity">${card.rarity}</div>
-            ${dupHTML}
-          </div>
-        `;
-
-        let startY = 0;
-        wrapper.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
-        wrapper.addEventListener('touchend', e => {
-          if (startY - e.changedTouches[0].clientY > 30) performSwipe(wrapper);
-        });
-        wrapper.addEventListener('mousedown', e => { startY = e.clientY; });
-        wrapper.addEventListener('mouseup', e => {
-          if (startY - e.clientY > 30) performSwipe(wrapper);
-        });
-
-        container.appendChild(wrapper);
-      });
-    }
-
-    function performSwipe(wrapper) {
-      if (wrapper.classList.contains('card-swiped')) return;
-      playRetroSound('swipe');
-      wrapper.classList.add('card-swiped');
-      cardsSwipedCount++;
-
-      if (cardsSwipedCount === 4) {
-        document.getElementById('btn-to-part5').style.display = 'block';
-      }
-    }
-
-    async function goToPart5() {
-      for (const card of drawnCards) {
-        if (card.isDuplicate) {
-          userData.dust_count += 10;
-          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
-        } else {
-          try {
-            await _supabase.from('user_inventory').insert({ card_id: card.id });
-          } catch(e) {}
-          sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
-        }
-      }
-
-      let nextDay = userData.streak_day + 1;
-      let nextMonths = userData.months_completed;
-      if (userData.streak_day >= 30) {
-        nextDay = 1;
-        nextMonths += 1;
-        sessionSummary.push("Mese completato! Ripartirai dal Giorno 1.");
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-
-      try {
-        await _supabase.from('user_state').update({
-          streak_day: nextDay,
-          months_completed: nextMonths,
-          dolls_count: userData.dolls_count,
-          dust_count: userData.dust_count,
-          last_claim_date: today
-        }).eq('id', 1);
-      } catch(e) {}
-
-      const summaryBox = document.getElementById('summary-content');
-      summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 4px;">- ${item}</p>`).join('');
-
-      showScreen('part5');
-    }
-
-    function turnOff() {
-      playRetroSound('off');
-      showScreen('part2');
-      setTimeout(() => { showScreen('part6'); }, 1200);
-    }
-
-    function restart() {
-      sessionSummary = [];
-      showScreen('part1');
-    }
-
-    async function openAlbum() {
-      showScreen('part-album');
-      
-      let dustCount = userData ? userData.dust_count : 0;
-      document.getElementById('excel-dust').innerText = dustCount;
-
-      let cards = [];
-      let inventory = [];
-
-      try {
-        const { data: cData } = await _supabase.from('cards').select('*');
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if(cData) cards = cData;
-        if(iData) inventory = iData;
-      } catch(e) {}
-
-      const counts = {};
-      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
-
-      const tbody = document.getElementById('excel-table-body');
-      tbody.innerHTML = '';
-
-      cards.forEach(card => {
-        const qty = counts[card.id] || 0;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${card.id}</td>
-          <td>${card.name}</td>
-          <td>${card.rarity}</td>
-          <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-  </script>
-</body>
-</html>
+    container.appendChild(wrapper);
+  });
+}
