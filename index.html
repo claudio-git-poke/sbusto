@@ -86,19 +86,38 @@
 
     .gb-screen { background: #9bbc0f; color: #0f380f; }
 
-    .card-container { position: relative; width: 140px; height: 190px; margin-top: 5px; }
-    .card-wrapper { position: absolute; width: 100%; height: 100%; transition: transform 0.4s ease, opacity 0.4s ease; cursor: grab; }
-    .card-swiped { transform: translateY(-350px) rotate(-10deg) !important; opacity: 0 !important; pointer-events: none; }
+    /* CSS AGGIORNATO PER SBUSTATA E DRAG REALISTICO (PARTE 4) */
+    .booster-pack {
+      width: 120px; height: 170px; background: linear-gradient(180deg, #ff4d4d 0%, #b30000 100%);
+      border: 3px solid #fff; border-radius: 8px; position: relative; cursor: grab; display: flex;
+      flex-direction: column; box-shadow: 0 8px 16px rgba(0,0,0,0.6); touch-action: none;
+    }
+    .booster-top {
+      height: 30px; background: #800000; border-bottom: 2px dashed #ffcccc; display: flex;
+      align-items: center; justify-content: center; font-size: 6px; color: #fff;
+      transition: transform 0.4s ease, opacity 0.4s ease; border-radius: 4px 4px 0 0;
+    }
+    .booster-bottom {
+      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px;
+      font-weight: bold; color: #fff; text-shadow: 1px 1px 0 #000; flex-direction: column;
+    }
+    .booster-torn .booster-top { transform: translateY(-80px) rotate(-10deg); opacity: 0; }
     
-    .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+    .card-container { position: relative; width: 140px; height: 190px; margin-top: 5px; }
+    .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
+    .card-wrapper.snap-back { transition: transform 0.3s ease; }
+    .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
+    
+    .card { width: 100%; height: 100%; background: #e0f8d0; border: 3px solid #0f380f; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; /* previene bug col drag */ }
     .card img { width: 100%; height: 90px; object-fit: cover; border: 2px solid #0f380f; }
     .card-title { font-size: 7px; color: #0f380f; }
     .card-rarity { font-size: 5px; background: #306230; color: #9bbc0f; padding: 2px 4px; }
     .duplicate-tag { font-size: 5px; color: #8b0500; font-weight: bold; }
 
     #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
-    .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; }
-    .excel-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+    .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; text-transform: uppercase;}
+    .excel-table { width: 100%; border-collapse: collapse; font-size: 8px; font-family: Arial, sans-serif;}
     .excel-table th, .excel-table td { border: 1px solid #ccc; padding: 4px; text-align: left; }
     .excel-table th { background: #e6e6e6; }
     .excel-table tr:nth-child(even) { background: #f9f9f9; }
@@ -157,14 +176,48 @@
         <audio id="bg-music" loop></audio>
       </div>
 
-      <div id="part4" class="screen" style="background: #000; color: #fff;">
-        <div style="font-size: 6px; margin-bottom: 4px;">SCORRI IN ALTO (SWIPE)</div>
-        <div class="card-container" id="cards-stack"></div>
-        <button id="btn-to-part5" onclick="goToPart5()" style="display:none; margin-top: 6px;">RIEPILOGO</button>
+      <!-- NUOVA PARTE 4 INTERATTIVA -->
+      <div id="part4" class="screen" style="background: #000; color: #fff; overflow: hidden;">
+        
+        <!-- FASE 1: BUSTINA -->
+        <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <div style="font-size: 6px; margin-bottom: 15px; color: #aaa;">TRAScina IN ALTO PER STRAPPARE</div>
+          <div class="booster-pack" id="booster-pack">
+            <div class="booster-top">TIRA SU</div>
+            <div class="booster-bottom">
+              <div>CARD SYNC</div>
+              <div style="font-size: 5px; margin-top: 5px; font-weight: normal;">BOOSTER PACK</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FASE 2: CARTE -->
+        <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%;">
+          <div style="font-size: 6px; margin-bottom: 4px;">TIENI PREMUTO E SOLLEVA (DRAG)</div>
+          <div class="card-container" id="cards-stack"></div>
+        </div>
+
+        <!-- FASE 3: TABELLA RIEPILOGO EXCEL INTERNA -->
+        <div id="part4-summary" style="display: none; background: #fff; color: #000; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto;">
+          <div class="excel-header" style="text-align: center;">RIEPILOGO SBUSTATA</div>
+          <table class="excel-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Rarità</th>
+                <th>Qtà</th>
+                <th>Origine/Note</th>
+              </tr>
+            </thead>
+            <tbody id="part4-summary-body"></tbody>
+          </table>
+          <button onclick="finalizePackAndGoToPart5()" style="background: #d32f2f; color: #fff; border: 2px solid #8b0000; width: 100%; margin-top: 10px;">ESCI E SALVA</button>
+        </div>
+
       </div>
 
       <div id="part5" class="screen gb-screen">
-        <h3 style="font-size: 8px; margin-bottom: 4px;">RIEPILOGO</h3>
+        <h3 style="font-size: 8px; margin-bottom: 4px;">LOG SALVATAGGIO</h3>
         <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
         <button onclick="openAlbum()" class="btn-small" style="background: #306230; color: #9bbc0f; margin-top: 8px;">VEDI ALBUM EXCEL</button>
         <button onclick="turnOff()">SPEGNI</button>
@@ -190,7 +243,7 @@
           </thead>
           <tbody id="excel-table-body"></tbody>
         </table>
-        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #ccc; color: #000;">TORNA AL RIEPILOGO</button>
+        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #ccc; color: #000;">TORNA AL LOG</button>
       </div>
 
     </div>
@@ -241,10 +294,94 @@
       } catch(e) {}
     }
 
+    /* ----------------------------------------------------
+       GESTIONE EVENTI DRAG/HOLD GLOBALE PER PARTE 4
+    ---------------------------------------------------- */
+    let dragObj = null;
+    let dragStartY = 0;
+    let dragType = ''; // 'pack' o 'card'
+
+    document.addEventListener('touchstart', handleDragStart, {passive: false});
+    document.addEventListener('touchmove', handleDragMove, {passive: false});
+    document.addEventListener('touchend', handleDragEnd);
+    document.addEventListener('mousedown', handleDragStart);
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+
+    function handleDragStart(e) {
+      const target = e.target.closest('.card-wrapper') || e.target.closest('.booster-pack');
+      if (!target) return;
+
+      if (target.classList.contains('booster-pack')) {
+        dragType = 'pack';
+        dragObj = target;
+      } else if (target.classList.contains('card-wrapper')) {
+        if (target.classList.contains('card-swiped')) return; // ignora se già swipata
+        dragType = 'card';
+        dragObj = target;
+        dragObj.classList.add('dragging');
+        dragObj.classList.remove('snap-back');
+      }
+      dragStartY = e.clientY || e.touches[0].clientY;
+    }
+
+    function handleDragMove(e) {
+      if (!dragObj) return;
+      
+      // Blocca lo scroll nativo del browser mentre interagiamo
+      if (e.cancelable) e.preventDefault(); 
+
+      let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+      if (clientY === null) return;
+      let dy = clientY - dragStartY;
+
+      if (dragType === 'pack') {
+        // Se si tira in alto per strappare
+        if (dy < -40) {
+          dragObj.classList.add('booster-torn');
+          playRetroSound('swipe');
+          dragObj = null; // Fine tracking pack
+          setTimeout(() => {
+            document.getElementById('booster-container').style.display = 'none';
+            document.getElementById('cards-area').style.display = 'flex';
+          }, 600);
+        }
+      } else if (dragType === 'card') {
+        if (dy > 0) dy = 0; // Permette solo il sollevamento (swipe up)
+        dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
+      }
+    }
+
+    function handleDragEnd(e) {
+      if (!dragObj) return;
+      if (dragType === 'card') {
+        dragObj.classList.remove('dragging');
+        let clientY = e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : dragStartY);
+        let dy = clientY - dragStartY;
+
+        // Soglia per confermare lo swipe
+        if (dy < -80) { 
+          dragObj.style.transform = ''; 
+          performSwipe(dragObj);
+        } else { 
+          // Rilasciato troppo presto: torna in posizione elastica
+          dragObj.classList.add('snap-back');
+          dragObj.style.transform = `translateY(0px) rotate(0deg)`;
+        }
+      }
+      dragObj = null;
+      dragType = '';
+    }
+
+    /* ---------------------------------------------------- */
+
     let userData = null;
     let drawnCards = [];
     let sessionSummary = [];
     let cardsSwipedCount = 0;
+    
+    // Array pronto per raccogliere eventuali doni passati dalla Cutscene in futuro
+    let extraRewards = []; 
     
     let cutsceneData = null;
     let cutsceneTimer = null;
@@ -444,23 +581,35 @@
 
     async function goToPart4() {
       showScreen('part4');
+      
+      // Setup iniziale visivo Parte 4
+      document.getElementById('booster-container').style.display = 'flex';
+      document.getElementById('cards-area').style.display = 'none';
+      document.getElementById('part4-summary').style.display = 'none';
+      document.getElementById('booster-pack').classList.remove('booster-torn');
+      
       const container = document.getElementById('cards-stack');
       container.innerHTML = '';
       cardsSwipedCount = 0;
-      document.getElementById('btn-to-part5').style.display = 'none';
 
       let allCards = [];
       let ownedIds = [];
 
       try {
-        const { data: cData } = await _supabase.from('cards').select('*');
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if(cData) allCards = cData;
-        if(iData) ownedIds = iData.map(i => i.card_id);
-      } catch(e) {}
+        const { data: cData, error: cErr } = await _supabase.from('cards').select('*');
+        if (cErr) throw cErr;
+        const { data: iData, error: iErr } = await _supabase.from('user_inventory').select('card_id');
+        if (iErr) throw iErr;
+        
+        if (cData) allCards = cData;
+        if (iData) ownedIds = iData.map(i => i.card_id);
+      } catch(e) {
+        // ALERT PER COPIA INCOLLA COME RICHIESTO (Regola 8)
+        alert(`ERRORE TECNICO SUPABASE (Lettura Dati)\n========================\nMessaggio: ${e.message}\nDettagli: ${e.details || 'N/A'}\n\nCopia questo popup per il fix.`);
+      }
 
       if (allCards.length === 0) {
-        allCards = [{ id: 1, name: 'Carta Prova', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+        allCards = [{ id: 1, name: 'Carta Fallback', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
       }
 
       const cardsByRarity = {
@@ -494,9 +643,9 @@
       drawnCards.forEach((card, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'card-wrapper';
-        wrapper.style.zIndex = 4 - index;
+        wrapper.style.zIndex = 4 - index; // La prima estratta sta sopra
         
-        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE (+10 Polvere)</div>` : '';
+        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
 
         wrapper.innerHTML = `
           <div class="card">
@@ -506,17 +655,6 @@
             ${dupHTML}
           </div>
         `;
-
-        let startY = 0;
-        wrapper.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
-        wrapper.addEventListener('touchend', e => {
-          if (startY - e.changedTouches[0].clientY > 30) performSwipe(wrapper);
-        });
-        wrapper.addEventListener('mousedown', e => { startY = e.clientY; });
-        wrapper.addEventListener('mouseup', e => {
-          if (startY - e.clientY > 30) performSwipe(wrapper);
-        });
-
         container.appendChild(wrapper);
       });
     }
@@ -527,20 +665,63 @@
       wrapper.classList.add('card-swiped');
       cardsSwipedCount++;
 
+      // Quando l'ultima carta vola via, mostra la tabella Excel della Parte 4
       if (cardsSwipedCount === 4) {
-        document.getElementById('btn-to-part5').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('cards-area').style.display = 'none';
+          showPart4Summary();
+        }, 600);
       }
     }
 
-    async function goToPart5() {
+    function showPart4Summary() {
+      const summaryArea = document.getElementById('part4-summary');
+      const tbody = document.getElementById('part4-summary-body');
+      tbody.innerHTML = '';
+
+      // Popola tabella carte
+      drawnCards.forEach(card => {
+        let note = card.isDuplicate ? '+10 Polvere' : 'Nuova!';
+        let color = card.isDuplicate ? '#8b0500' : '#306230';
+        
+        tbody.innerHTML += `
+          <tr>
+            <td>${card.name}</td>
+            <td>${card.rarity}</td>
+            <td>1</td>
+            <td style="color: ${color}; font-weight: bold; font-size: 6px;">${note} (Sbustata)</td>
+          </tr>
+        `;
+      });
+
+      // Aggiunta dinamica per eventuali futuri regali da Cutscene (Regola 9)
+      extraRewards.forEach(reward => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${reward.name}</td>
+            <td>${reward.rarity}</td>
+            <td>${reward.qty}</td>
+            <td style="color: #0f380f; font-weight: bold; font-size: 6px;">Regalo Cutscene!</td>
+          </tr>
+        `;
+      });
+
+      summaryArea.style.display = 'block';
+    }
+
+    async function finalizePackAndGoToPart5() {
+      // SALVATAGGIO INVENTARIO E RISORSE NEL DATABASE
       for (const card of drawnCards) {
         if (card.isDuplicate) {
           userData.dust_count += 10;
           sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
         } else {
           try {
-            await _supabase.from('user_inventory').insert({ card_id: card.id });
-          } catch(e) {}
+            const { error: insErr } = await _supabase.from('user_inventory').insert({ card_id: card.id });
+            if(insErr) throw insErr;
+          } catch(e) {
+             alert(`ERRORE TECNICO SUPABASE (Scrittura Carta)\n========================\nMessaggio: ${e.message}\n\nCopia e segnala.`);
+          }
           sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
         }
       }
@@ -556,15 +737,19 @@
       const today = new Date().toISOString().split('T')[0];
 
       try {
-        await _supabase.from('user_state').update({
+        const { error: updErr } = await _supabase.from('user_state').update({
           streak_day: nextDay,
           months_completed: nextMonths,
           dolls_count: userData.dolls_count,
           dust_count: userData.dust_count,
           last_claim_date: today
         }).eq('id', 1);
-      } catch(e) {}
+        if(updErr) throw updErr;
+      } catch(e) {
+         alert(`ERRORE TECNICO SUPABASE (Aggiornamento Stato)\n========================\nMessaggio: ${e.message}\n\nCopia e segnala.`);
+      }
 
+      // Aggiorna visivamente il text-log nella Parte 5
       const summaryBox = document.getElementById('summary-content');
       summaryBox.innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
 
@@ -579,6 +764,7 @@
 
     function restart() {
       sessionSummary = [];
+      extraRewards = []; // reset regali extra
       showScreen('part0');
     }
 
