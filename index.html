@@ -80,7 +80,7 @@
 
     .gb-screen { background: #2c221e; color: #f4e8c1; }
 
-    /* --- BUSTINA 3D SHINY & TAGLIO SAMURAI --- */
+    /* --- BUSTINA 3D SHINY (CONFINATO PERFETTAMENTE) --- */
     #booster-container {
       perspective: 1000px;
     }
@@ -90,15 +90,16 @@
       border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: grab; display: flex;
       flex-direction: column; box-shadow: 0 12px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.6); 
       transform-style: preserve-3d; transition: transform 0.1s; touch-action: none;
+      overflow: hidden; /* FONDAMENTALE: Mantiene lo shiny dentro i bordi della busta */
     }
     .booster-shine {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%);
-      pointer-events: none; border-radius: 8px; animation: shineMove 3s infinite linear;
+      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
+      pointer-events: none; border-radius: 10px; animation: shineMove 3s infinite linear;
     }
     @keyframes shineMove {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+      0% { transform: translateX(-60%) translateY(-60%) rotate(25deg); }
+      100% { transform: translateX(60%) translateY(60%) rotate(25deg); }
     }
     .booster-top {
       height: 30px; background: linear-gradient(90deg, #555, #888, #555); border-bottom: 2px dashed #ffd700; display: flex;
@@ -113,27 +114,28 @@
       width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700);
     }
 
-    /* Animazione Taglio Katana Samurai */
-    .booster-pack.samurai-sliced {
-      animation: samuraiCut 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    /* Animazione Taglio Spada Laser Lento e Drammatico */
+    .booster-pack.laser-sliced {
+      animation: laserCut 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     }
-    @keyframes samuraiCut {
+    @keyframes laserCut {
       0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-      30% { transform: scale(1.1) rotate(-5deg); filter: brightness(1.8) drop-shadow(0 0 20px #00ffff); }
-      40% { transform: scale(1.05) rotate(15deg) skewX(-20deg); clip-path: polygon(0 0, 100% 20%, 80% 100%, 0 80%); }
-      100% { transform: translateY(120px) rotate(45deg); opacity: 0; }
+      20% { transform: scale(1.05) rotate(-2deg); filter: brightness(2) drop-shadow(0 0 25px #00ffff); }
+      40% { transform: scale(1.02) rotate(5deg); clip-path: polygon(0 0, 100% 15%, 85% 100%, 0 85%); filter: brightness(3); }
+      100% { transform: translateY(140px) rotate(20deg) scale(0.9); opacity: 0; }
     }
     
-    /* Taglio grafico di luce sullo schermo */
-    .slash-effect {
+    /* Effetto fascio di luce plasma/spada laser sullo schermo */
+    .laser-slash-effect {
       position: absolute; top: 0; left: -100%; width: 300%; height: 100%;
-      background: linear-gradient(135deg, transparent 45%, rgba(255,255,255,0.9) 49%, rgba(0,229,255,0.8) 50%, transparent 55%);
-      pointer-events: none; z-index: 100; transform: rotate(-35deg);
-      animation: slashAnim 0.4s ease-out forwards;
+      background: linear-gradient(135deg, transparent 46%, rgba(255,255,255,1) 49%, rgba(0,240,255,0.95) 50%, rgba(0,120,255,0.6) 52%, transparent 56%);
+      pointer-events: none; z-index: 100; transform: rotate(-30deg);
+      animation: laserSlashAnim 1.2s ease-out forwards;
     }
-    @keyframes slashAnim {
-      0% { transform: translate(-50%, -50%) rotate(-35deg); opacity: 1; }
-      100% { transform: translate(50%, 50%) rotate(-35deg); opacity: 0; }
+    @keyframes laserSlashAnim {
+      0% { transform: translate(-60%, -60%) rotate(-30deg); opacity: 0; }
+      20% { opacity: 1; filter: drop-shadow(0 0 15px #00ffff); }
+      100% { transform: translate(60%, 60%) rotate(-30deg); opacity: 0; }
     }
 
     /* --- LUCCIOLE E BAGLIORE DI APERTURA --- */
@@ -157,38 +159,49 @@
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    /* --- STILE CARTE ANTICHE & GEROGLIFICI UNOWN --- */
+    /* --- STILE CARTE ANTICHE, CONSUMATE & GEROGLIFICI UNOWN --- */
     .card { 
       width: 100%; height: 100%; 
-      background: linear-gradient(135deg, #d2b48c 0%, #deb887 60%, #c4a47c 100%); 
-      border: 3px solid #5c4033; border-radius: 8px; padding: 5px; 
+      background: linear-gradient(135deg, #c8b183 0%, #b89762 60%, #9e7b4b 100%); 
+      border: 3px solid #3d2616; border-radius: 8px; padding: 5px; 
       display: flex; flex-direction: column; justify-content: space-between; align-items: center; 
-      pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 0 10px rgba(92,64,51,0.4);
+      pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.7), inset 0 0 12px rgba(40,20,5,0.6);
       position: relative;
     }
-    /* Decorazioni Geroglifici Unown sui bordi della carta */
+    /* Effetto usura/graffi e geroglifici Unown sui bordi */
     .card::before {
-      content: '⾕⾖⾗⾘';
-      position: absolute; top: 2px; font-size: 5px; color: #5c4033; letter-spacing: 2px; opacity: 0.7;
+      content: '⾕⾖⾗⾘⾙⾚';
+      position: absolute; top: 2px; font-size: 5px; color: #3d2616; letter-spacing: 2px; opacity: 0.85;
     }
     .card::after {
-      content: '⾘⾗⾖⾕';
-      position: absolute; bottom: 2px; font-size: 5px; color: #5c4033; letter-spacing: 2px; opacity: 0.7;
+      content: '⾚⾙⾘⾗⾖⾕';
+      position: absolute; bottom: 2px; font-size: 5px; color: #3d2616; letter-spacing: 2px; opacity: 0.85;
     }
 
-    .card img { width: 100%; height: 95px; object-fit: cover; border: 2px solid #5c4033; border-radius: 4px; filter: sepia(0.3) contrast(1.1); }
-    .card-title { font-size: 6px; color: #3b2219; font-weight: bold; margin-top: 4px; }
-    .card-rarity { font-size: 5px; background: #5c4033; color: #ffcc00; padding: 2px 5px; border-radius: 3px; }
-    .duplicate-tag { font-size: 5px; color: #8b0000; font-weight: bold; }
+    .card img { width: 100%; height: 92px; object-fit: cover; border: 2px solid #3d2616; border-radius: 4px; filter: sepia(0.5) contrast(1.2) brightness(0.9); }
+    .card-title { font-size: 5.5px; color: #231208; font-weight: bold; margin-top: 4px; text-shadow: 0px 0px 1px rgba(255,255,255,0.4); }
+    .card-rarity { font-size: 5px; background: #3d2616; color: #ffcc00; padding: 2px 5px; border-radius: 3px; }
+    .duplicate-tag { font-size: 5px; color: #6b0000; font-weight: bold; }
 
     /* Bagliore iniziale carta che sfuma lentamente */
     .card-glow-reveal {
       animation: cardGlowFade 2s ease-out forwards;
     }
     @keyframes cardGlowFade {
-      0% { filter: brightness(2.55) drop-shadow(0 0 25px #ffffff); }
+      0% { filter: brightness(2.6) drop-shadow(0 0 25px #ffffff); }
       50% { filter: brightness(1.4) drop-shadow(0 0 12px #ffcc00); }
       100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
+    }
+
+    /* Bagliore extra intenso e super shiny per le Leggendarie */
+    .card.legendary-shiny {
+      border: 3px solid #ffcc00;
+      box-shadow: 0 0 18px #ffdf00, inset 0 0 15px rgba(255,215,0,0.8);
+      animation: legendaryPulse 2s infinite alternate ease-in-out;
+    }
+    @keyframes legendaryPulse {
+      0% { box-shadow: 0 0 10px #ffcc00, inset 0 0 10px rgba(255,215,0,0.5); }
+      100% { box-shadow: 0 0 25px #00ffff, 0 0 35px #ff00ff, inset 0 0 20px rgba(255,255,255,0.9); }
     }
 
     #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
@@ -198,7 +211,7 @@
     .excel-table th { background: #e6e6e6; }
     .excel-table tr:nth-child(even) { background: #f9f9f9; }
 
-    button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #5c4033; color: #ffcc00; border: 3px solid #ffd700; box-shadow: 2px 2px 0px #111; margin-top: 6px; }
+    button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #3d2616; color: #ffcc00; border: 3px solid #ffd700; box-shadow: 2px 2px 0px #111; margin-top: 6px; }
     button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #111; }
     
     .btn-small { padding: 5px 7px; font-size: 6px; }
@@ -214,7 +227,7 @@
 
     /* --- PANNELLO TEST / DEBUG --- */
     #debug-panel {
-      position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 2px solid #ffd700;
+      position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #ffd700;
       padding: 6px; border-radius: 6px; z-index: 99999; display: flex; flex-direction: column; gap: 4px;
     }
     #debug-panel button { font-size: 5px; padding: 4px 6px; margin: 0; background: #222; color: #00ffcc; border-color: #00ffcc; }
@@ -222,12 +235,13 @@
 </head>
 <body>
 
-  <!-- PANNELLO DI PROVA / TEST ANIMAZIONI -->
+  <!-- PANNELLO DI PROVA / TEST ANIMAZIONI & STREAK -->
   <div id="debug-panel">
     <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL ]</div>
     <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria per la prossima busta!');">Forza Leggendaria</button>
     <button onclick="forcedRarity = 'Epica'; alert('Forzata Epica per la prossima busta!');">Forza Epica</button>
-    <button onclick="forcedRarity = null; alert('Filtro rarità rimosso (casuale).');">Reset Filtro</button>
+    <button onclick="forcedRarity = null; alert('Filtro rarità rimosso.');">Reset Filtro</button>
+    <button onclick="resetStreakTo1()" style="color: #ff4444; border-color: #ff4444;">Resetta Streak a 1</button>
   </div>
 
   <div id="gameboy-frame">
@@ -267,16 +281,16 @@
         <audio id="bg-music" loop></audio>
       </div>
 
-      <!-- PARTE 4: BUSTINA 3D SHINY & TAGLIO SAMURAI -->
+      <!-- PARTE 4: BUSTINA 3D SHINY CONFINATO & TAGLIO SPADA LASER -->
       <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
         
         <div id="sparkles-container"></div>
 
         <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 12px; color: #ffd700;">TRASCINA A DESTRA PER IL COLPO DI KATANA</div>
+          <div style="font-size: 5px; margin-bottom: 12px; color: #ffd700;">TRASCINA A DESTRA PER IL TAGLIO LASER</div>
           <div class="booster-pack" id="booster-pack">
             <div class="booster-shine"></div>
-            <div class="booster-top">⚡ TAGLIA</div>
+            <div class="booster-top">⚡ PLASMA</div>
             <div class="booster-bottom">
               <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
               <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
@@ -310,7 +324,7 @@
       <div id="part5" class="screen gb-screen">
         <h3 style="font-size: 8px; margin-bottom: 4px; color: #ffd700;">LOG SALVATAGGIO</h3>
         <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
-        <button onclick="openAlbum()" class="btn-small" style="background: #5c4033; color: #ffd700; margin-top: 8px; border-color: #ffd700;">VEDI ALBUM</button>
+        <button onclick="openAlbum()" class="btn-small" style="background: #3d2616; color: #ffd700; margin-top: 8px; border-color: #ffd700;">VEDI ALBUM</button>
         <button onclick="turnOff()">SPEGNI</button>
       </div>
 
@@ -334,7 +348,7 @@
           </thead>
           <tbody id="excel-table-body"></tbody>
         </table>
-        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #5c4033; color: #ffd700; border-color: #ffd700;">TORNA AL LOG</button>
+        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #3d2616; color: #ffd700; border-color: #ffd700;">TORNA AL LOG</button>
       </div>
 
     </div>
@@ -345,7 +359,7 @@
     const SUPABASE_KEY = 'sb_publishable_3JHORvzXFoBh7XVVuSqgTg__ezQdQMa';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let forcedRarity = null; // Variabile di test per il debug panel
+    let forcedRarity = null;
     let audioCtx = null;
     
     function initAudio() {
@@ -368,13 +382,14 @@
           gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
           osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-        } else if (type === 'slash') {
+        } else if (type === 'laser') {
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.6);
+          osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 1.2);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+          osc.start(); osc.stop(audioCtx.currentTime + 1.2);
         } else if (type === 'off') {
           osc.type = 'sawtooth';
           osc.frequency.setValueAtTime(300, audioCtx.currentTime);
@@ -386,7 +401,17 @@
       } catch(e) {}
     }
 
-    /* --- GESTIONE DRAG/HOLD & TAGLIO KATANA --- */
+    /* --- FUNZIONE DI TEST PER RESET STREAK --- */
+    async function resetStreakTo1() {
+      try {
+        await _supabase.from('user_state').update({ streak_day: 1, months_completed: 0 }).eq('id', 1);
+        alert('Streak resettata al Giorno 1 con successo!');
+      } catch(e) {
+        alert('Errore reset streak: ' + e.message);
+      }
+    }
+
+    /* --- GESTIONE DRAG & TAGLIO SPADA LASER --- */
     let dragObj = null;
     let dragStartX = 0;
     let dragStartY = 0;
@@ -430,20 +455,20 @@
 
       if (dragType === 'pack') {
         if (dx > 40) {
-          dragObj.classList.add('samurai-sliced');
-          playRetroSound('slash');
+          dragObj.classList.add('laser-sliced');
+          playRetroSound('laser');
           
-          // Crea effetto visivo di taglio sullo schermo
-          const slash = document.createElement('div');
-          slash.className = 'slash-effect';
-          document.getElementById('part4').appendChild(slash);
-          setTimeout(() => slash.remove(), 400);
+          // Crea fascio di luce laser sullo schermo
+          const laser = document.createElement('div');
+          laser.className = 'laser-slash-effect';
+          document.getElementById('part4').appendChild(laser);
+          setTimeout(() => laser.remove(), 1200);
 
           dragObj = null; 
           setTimeout(() => {
             document.getElementById('booster-container').style.display = 'none';
             document.getElementById('cards-area').style.display = 'flex';
-          }, 450);
+          }, 1100);
         }
       } else if (dragType === 'card') {
         if (dy > 0) dy = 0;
@@ -474,7 +499,6 @@
     let drawnCards = [];
     let sessionSummary = [];
     let cardsSwipedCount = 0;
-    let extraRewards = []; 
     
     let cutsceneData = null;
     let cutsceneTimer = null;
@@ -553,12 +577,15 @@
       document.getElementById('val-dolls').innerText = userData.dolls_count;
       document.getElementById('val-dust').innerText = userData.dust_count;
 
+      // FIX: Carica correttamente la cutscene basata sul giorno attuale (es. giorno7.json)
       const fileName = `cutscenes/giorno${userData.streak_day}.json`;
       try {
         const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
         const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
         if (response.ok) {
           cutsceneData = await response.json();
+        } else {
+          cutsceneData = null;
         }
       } catch(e) {
         cutsceneData = null;
@@ -662,7 +689,7 @@
       document.getElementById('booster-container').style.display = 'flex';
       document.getElementById('cards-area').style.display = 'none';
       document.getElementById('part4-summary').style.display = 'none';
-      document.getElementById('booster-pack').classList.remove('samurai-sliced');
+      document.getElementById('booster-pack').classList.remove('laser-sliced');
       
       const container = document.getElementById('cards-stack');
       container.innerHTML = '';
@@ -679,9 +706,7 @@
         
         if (cData) allCards = cData;
         if (iData) ownedIds = iData.map(i => i.card_id);
-      } catch(e) {
-        alert(`ERRORE SUPABASE: ${e.message}`);
-      }
+      } catch(e) {}
 
       if (allCards.length === 0) {
         allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
@@ -728,9 +753,10 @@
         wrapper.style.zIndex = 4 - index; 
         
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
+        let legendaryClass = card.rarity === 'Leggendaria' ? ' legendary-shiny' : '';
 
         wrapper.innerHTML = `
-          <div class="card card-glow-reveal">
+          <div class="card card-glow-reveal${legendaryClass}">
             <div class="card-title">${card.name}</div>
             <img src="${card.image_url}" alt="card">
             <div class="card-rarity">${card.rarity}</div>
@@ -758,9 +784,8 @@
 
     function performSwipe(wrapper) {
       if (wrapper.classList.contains('card-swiped')) return;
-      playRetroSound('slash');
+      playRetroSound('laser');
       
-      // Genera le lucciole che escono dalla carta quando viene sfogliata
       generateFireflies();
 
       wrapper.classList.add('card-swiped');
@@ -821,9 +846,7 @@
         } else {
           try {
             await _supabase.from('user_inventory').insert({ card_id: card.id });
-          } catch(e) {
-             alert(`ERRORE SCRITTURA: ${e.message}`);
-          }
+          } catch(e) {}
           sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
         }
       }
@@ -862,7 +885,6 @@
 
     function restart() {
       sessionSummary = [];
-      extraRewards = [];
       forcedRarity = null;
       showScreen('part0');
     }
