@@ -94,6 +94,9 @@
     
     .btn-small { padding: 6px 8px; font-size: 7px; }
     .stat-box { font-size: 6px; line-height: 10px; text-align: left; }
+
+    /* RENDERER CUTSCENE ENGINE */
+    .actor-sprite { position: absolute; width: 48px; height: 48px; pointer-events: none; z-index: 5; image-rendering: pixelated; object-fit: contain; }
   </style>
 </head>
 <body>
@@ -121,17 +124,17 @@
       <!-- PARTE 2: ACCENSIONE -->
       <div id="part2" class="screen"></div>
 
-      <!-- PARTE 3: CUTSCENE VISUAL NOVEL -->
+      <!-- PARTE 3: CUTSCENE VISUAL NOVEL ENGINE -->
       <div id="part3" class="screen gb-screen" style="position: relative; overflow: hidden; padding: 0;">
         <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
         <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
 
-        <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 4; background: rgba(155, 188, 15, 0.85); padding: 4px; border-radius: 4px;">
+        <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 10; background: rgba(155, 188, 15, 0.85); padding: 4px; border-radius: 4px;">
           <div>STREAK: <span id="val-streak">1</span> GG | MESI: <span id="val-months">0</span></div>
           <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
         </div>
 
-        <div id="dialogue-box" onclick="nextCutsceneStep()" style="position: absolute; bottom: 8px; width: 92%; min-height: 60px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 3; cursor: pointer; text-align: left;">
+        <div id="dialogue-box" onclick="handleDialogueClick()" style="position: absolute; bottom: 8px; width: 92%; min-height: 60px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; cursor: pointer; text-align: left; display: none;">
           <div id="speaker-name" style="font-size: 7px; color: #306230; font-weight: bold; margin-bottom: 4px; text-transform: uppercase;"></div>
           <div id="dialogue-text" style="font-size: 7px; line-height: 10px; color: #0f380f;"></div>
           <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
@@ -231,8 +234,13 @@
     let drawnCards = [];
     let sessionSummary = [];
     let cardsSwipedCount = 0;
-    let currentCutsceneData = null;
-    let currentStepIndex = 0;
+    
+    // VARIABILI CUTSCENE ENGINE
+    let cutsceneData = null;
+    let cutsceneTimer = null;
+    let cutsceneTime = 0;
+    let isDialogueActive = false;
+    let triggeredEvents = new Set();
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -305,77 +313,119 @@
       document.getElementById('val-dolls').innerText = userData.dolls_count;
       document.getElementById('val-dust').innerText = userData.dust_count;
 
+      // CARICAMENTO FILE JSON DA SUPABASE STORAGE
       try {
-        const { data: cs } = await _supabase.from('cutscenes').select('*').eq('day', userData.streak_day).single();
-        currentCutsceneData = cs ? cs.data : null;
-      } catch(e) { currentCutsceneData = null; }
+        const { data: fileBlob } = await _supabase.storage.from('assets').download('cutscenes/cutscene.json');
+        if (fileBlob) {
+          cutsceneData = JSON.parse(await fileBlob.text());
+        }
+      } catch(e) {
+        console.error("Errore download cutscene:", e);
+        cutsceneData = null;
+      }
 
-      if (!currentCutsceneData || !currentCutsceneData.steps || currentCutsceneData.steps.length === 0) {
-        currentCutsceneData = {
-          background_url: '',
-          music_url: '',
-          steps: [{ dialogue: "Giorno " + userData.streak_day + ". Benvenuto [nome]!", speaker: "SISTEMA", protagonist: { show: true, x: 40, y: 50 } }]
+      // FALLBACK SE IL FILE NON ESISTE
+      if (!cutsceneData) {
+        cutsceneData = {
+          background: '',
+          music: '',
+          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [100, 150] }],
+          events: [{ id: 1, type: 'dialogue', speaker: 'SISTEMA', text: `Benvenuto ${userData.username || 'Giocatore'}!`, start: 0, duration: 3 }]
         };
       }
 
+      startCutscenePlayback();
+    }
+
+    function startCutscenePlayback() {
+      const bgEl = document.getElementById('cutscene-bg');
       const audioEl = document.getElementById('bg-music');
-      if (currentCutsceneData.music_url) {
-        audioEl.src = currentCutsceneData.music_url;
+      const spritesLayer = document.getElementById('sprites-layer');
+
+      spritesLayer.innerHTML = '';
+      triggeredEvents.clear();
+      cutsceneTime = 0;
+      isDialogueActive = false;
+
+      // Sfondo
+      if (cutsceneData.background) {
+        bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
+      } else {
+        bgEl.style.backgroundImage = 'none';
+      }
+
+      // Musica
+      if (cutsceneData.music) {
+        audioEl.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
         audioEl.play().catch(() => {});
       } else {
         audioEl.pause();
       }
 
-      document.getElementById('cutscene-bg').style.backgroundImage = currentCutsceneData.background_url ? `url('${currentCutsceneData.background_url}')` : 'none';
+      // Rendering Iniziale Attori
+      (cutsceneData.actors || []).forEach(actor => {
+        const img = document.createElement('img');
+        img.className = 'actor-sprite';
+        img.id = `actor-sprite-${actor.id}`;
+        
+        // Se l'attore ha uno sprite custom caricato da Supabase usa quello, altrimenti usa l'avatar profilo
+        if (actor.asset) {
+          img.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
+        } else {
+          img.src = userData.avatar_url;
+        }
 
-      currentStepIndex = 0;
-      renderStep(currentStepIndex);
-    }
+        img.style.left = `${actor.pos[0]}px`;
+        img.style.top = `${actor.pos[1]}px`;
+        spritesLayer.appendChild(img);
+      });
 
-    function renderStep(index) {
-      const step = currentCutsceneData.steps[index];
-      const spritesLayer = document.getElementById('sprites-layer');
-      spritesLayer.innerHTML = '';
+      // Loop di Riproduzione Cutscene (20 FPS)
+      cutsceneTimer = setInterval(() => {
+        if (isDialogueActive) return;
 
-      let formattedText = step.dialogue.replace(/\[nome\]/g, userData.username || 'Giocatore');
-      document.getElementById('dialogue-text').innerText = formattedText;
-      document.getElementById('speaker-name').innerText = step.speaker || '';
+        (cutsceneData.events || []).forEach(ev => {
+          // Gestione Movimenti (Interpolazione Coordinate LERP)
+          if (ev.type === 'move' && cutsceneTime >= ev.start && cutsceneTime <= (ev.start + ev.duration)) {
+            const actorObj = cutsceneData.actors.find(a => a.name === ev.actor);
+            if (actorObj) {
+              const dom = document.getElementById(`actor-sprite-${actorObj.id}`);
+              if (dom) {
+                const progress = (cutsceneTime - ev.start) / ev.duration;
+                const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
+                const currentY = ev.from[1] + (ev.to[1] - ev.from[1]) * progress;
+                dom.style.left = `${currentX}px`;
+                dom.style.top = `${currentY}px`;
+              }
+            }
+          }
 
-      if (step.protagonist && step.protagonist.show) {
-        const pImg = document.createElement('img');
-        pImg.src = userData.avatar_url;
-        pImg.style.position = 'absolute';
-        pImg.style.width = '35px';
-        pImg.style.height = '35px';
-        pImg.style.left = step.protagonist.x + '%';
-        pImg.style.top = step.protagonist.y + '%';
-        pImg.style.transition = 'all 0.3s ease';
-        spritesLayer.appendChild(pImg);
-      }
-
-      if (step.extra_pngs && Array.isArray(step.extra_pngs)) {
-        step.extra_pngs.forEach(png => {
-          const img = document.createElement('img');
-          img.src = png.url;
-          img.style.position = 'absolute';
-          img.style.width = '35px';
-          img.style.height = '35px';
-          img.style.left = png.x + '%';
-          img.style.top = png.y + '%';
-          img.style.transition = 'all 0.3s ease';
-          spritesLayer.appendChild(img);
+          // Gestione Dialoghi
+          if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
+            triggeredEvents.add(ev.id);
+            if (ev.type === 'dialogue') {
+              isDialogueActive = true;
+              document.getElementById('speaker-name').innerText = ev.speaker;
+              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Giocatore');
+              document.getElementById('dialogue-box').style.display = 'block';
+            }
+          }
         });
-      }
+
+        cutsceneTime += 0.05;
+
+        // Fine Cutscene dopo 10 secondi
+        if (cutsceneTime >= 10.0) {
+          clearInterval(cutsceneTimer);
+          document.getElementById('bg-music').pause();
+          goToPart4();
+        }
+      }, 50);
     }
 
-    function nextCutsceneStep() {
-      currentStepIndex++;
-      if (currentStepIndex < currentCutsceneData.steps.length) {
-        renderStep(currentStepIndex);
-      } else {
-        document.getElementById('bg-music').pause();
-        goToPart4();
-      }
+    function handleDialogueClick() {
+      document.getElementById('dialogue-box').style.display = 'none';
+      isDialogueActive = false;
     }
 
     async function goToPart4() {
