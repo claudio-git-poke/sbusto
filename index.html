@@ -20,9 +20,9 @@
 
     #gameboy-frame {
       width: 100%;
-      max-width: 800px;
+      max-width: 600px;
       height: 95vh;
-      max-height: 600px;
+      max-height: 500px;
       background: #d32f2f;
       border: 6px solid #8b0000;
       border-radius: 20px;
@@ -45,8 +45,11 @@
     }
 
     #screen-wrapper {
-      width: 95%;
-      height: 85%;
+      width: 100%;
+      max-width: 400px;
+      height: 100%;
+      max-height: 300px;
+      aspect-ratio: 4 / 3;
       background: #000;
       border: 4px solid #333;
       border-radius: 8px;
@@ -95,24 +98,22 @@
     .btn-small { padding: 6px 8px; font-size: 7px; }
     .stat-box { font-size: 6px; line-height: 10px; text-align: left; }
 
-    /* RENDERER CUTSCENE ENGINE (FULL VISIBILITY CONTAIN) */
+    /* RENDERER CUTSCENE ENGINE */
     .actor-sprite { 
       position: absolute; 
-      width: 10%; 
-      height: auto; 
-      max-width: 48px;
+      width: 48px; 
+      height: 48px; 
       pointer-events: none; 
       z-index: 5; 
       image-rendering: pixelated; 
       object-fit: contain; 
-      transform: translate(-50%, -50%);
     }
   </style>
 </head>
 <body>
 
   <div id="gameboy-frame">
-    <div id="frame-label">[ PLAYER LANDSCAPE ]</div>
+    <div id="frame-label">[ GAMEBOY PLAYER ]</div>
 
     <div id="screen-wrapper">
 
@@ -135,8 +136,8 @@
       <div id="part2" class="screen"></div>
 
       <!-- PARTE 3: CUTSCENE ENGINE -->
-      <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer;">
-        <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 1;"></div>
+      <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
+        <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
         <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
 
         <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 10; background: rgba(155, 188, 15, 0.85); padding: 4px; border-radius: 4px;">
@@ -144,7 +145,7 @@
           <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
         </div>
 
-        <div id="dialogue-box" style="position: absolute; bottom: 8px; width: 92%; min-height: 50px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; text-align: left; display: none;">
+        <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 50px; background: #e0f8d0; border: 3px solid #0f380f; padding: 6px; z-index: 10; text-align: left; display: none;">
           <div id="speaker-name" style="font-size: 7px; color: #306230; font-weight: bold; margin-bottom: 4px; text-transform: uppercase;"></div>
           <div id="dialogue-text" style="font-size: 7px; line-height: 10px; color: #0f380f;"></div>
           <div style="font-size: 5px; color: #306230; position: absolute; bottom: 2px; right: 4px;">[CLICK OVUNQUE PER AVANZARE]</div>
@@ -245,7 +246,6 @@
     let sessionSummary = [];
     let cardsSwipedCount = 0;
     
-    // VARIABILI CUTSCENE ENGINE
     let cutsceneData = null;
     let cutsceneTimer = null;
     let cutsceneTime = 0;
@@ -323,11 +323,13 @@
       document.getElementById('val-dolls').innerText = userData.dolls_count;
       document.getElementById('val-dust').innerText = userData.dust_count;
 
+      // DOWNLOAD CON CACHE-BUSTING PER FORZARE L'AGGIORNAMENTO
       const fileName = `cutscenes/giorno${userData.streak_day}.json`;
       try {
-        const { data: fileBlob } = await _supabase.storage.from('assets').download(fileName);
-        if (fileBlob) {
-          cutsceneData = JSON.parse(await fileBlob.text());
+        const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
+        const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
+        if (response.ok) {
+          cutsceneData = await response.json();
         }
       } catch(e) {
         console.error(`Errore download cutscene ${fileName}:`, e);
@@ -338,7 +340,7 @@
         cutsceneData = {
           background: '',
           music: '',
-          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [50, 50] }],
+          actors: [{ id: 'hero', name: userData.username || 'Hero', asset: '', pos: [176, 126] }],
           events: [{ id: 1, type: 'dialogue', speaker: 'SISTEMA', text: `Giorno ${userData.streak_day}: Benvenuto ${userData.username || 'Giocatore'}!`, start: 0, duration: 3 }]
         };
       }
@@ -369,8 +371,10 @@
         audioEl.pause();
       }
 
-      const stageWidth = spritesLayer.clientWidth || 400;
-      const stageHeight = spritesLayer.clientHeight || 300;
+      // CALCOLO SCALA PROPORZIONALE 1:1 CON L'EDITOR
+      const stage = document.getElementById('screen-wrapper');
+      const scaleX = stage.clientWidth / 400;
+      const scaleY = stage.clientHeight / 300;
 
       (cutsceneData.actors || []).forEach(actor => {
         const img = document.createElement('img');
@@ -383,17 +387,18 @@
           img.src = userData.avatar_url;
         }
 
-        // Conversione coordinate da pixel a percentuale rispetto allo stage
-        const pctX = (actor.pos[0] / 400) * 100;
-        const pctY = (actor.pos[1] / 300) * 100;
-
-        img.style.left = `${pctX}%`;
-        img.style.top = `${pctY}%`;
+        img.style.left = `${actor.pos[0] * scaleX}px`;
+        img.style.top = `${actor.pos[1] * scaleY}px`;
+        img.style.width = `${48 * scaleX}px`;
+        img.style.height = `${48 * scaleY}px`;
         spritesLayer.appendChild(img);
       });
 
       cutsceneTimer = setInterval(() => {
         if (isDialogueActive) return;
+
+        const currentScaleX = stage.clientWidth / 400;
+        const currentScaleY = stage.clientHeight / 300;
 
         (cutsceneData.events || []).forEach(ev => {
           if (ev.type === 'move' && cutsceneTime >= ev.start && cutsceneTime <= (ev.start + ev.duration)) {
@@ -405,11 +410,8 @@
                 const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
                 const currentY = ev.from[1] + (ev.to[1] - ev.from[1]) * progress;
                 
-                const pctX = (currentX / 400) * 100;
-                const pctY = (currentY / 300) * 100;
-
-                dom.style.left = `${pctX}%`;
-                dom.style.top = `${pctY}%`;
+                dom.style.left = `${currentX * currentScaleX}px`;
+                dom.style.top = `${currentY * currentScaleY}px`;
               }
             }
           }
