@@ -148,6 +148,50 @@
       image-rendering: pixelated; 
       object-fit: contain; 
     }
+
+    /* --- STILI AGGIUNTIVI PER LE NUOVE CARATTERISTICHE VISIVE --- */
+    @keyframes screenShake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-4px, 4px); }
+      40% { transform: translate(4px, -4px); }
+      60% { transform: translate(-3px, -2px); }
+      80% { transform: translate(3px, 2px); }
+      100% { transform: translate(0, 0); }
+    }
+    .shake { animation: screenShake 0.4s ease-in-out; }
+
+    .card-foil { position: relative; overflow: hidden; }
+    .card-foil::after {
+      content: ''; position: absolute; top: -50%; left: -50%; right: -50%; bottom: -50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,215,0,0.4) 50%, rgba(255,255,255,0) 100%);
+      transform: rotate(30deg); pointer-events: none; opacity: 0.8;
+    }
+
+    @keyframes celebiWalk {
+      0% { transform: translate(-80px, 10px) scaleX(1); opacity: 0; }
+      20% { transform: translate(25vw, 0) scaleX(1); opacity: 1; }
+      50% { transform: translate(45vw, -5px) scaleX(1); }
+      70% { transform: translate(45vw, 0) scaleX(1); }
+      100% { transform: translate(110vw, 10px) scaleX(1); opacity: 0; }
+    }
+    #celebi-easter-egg {
+      position: fixed; bottom: 40%; left: 0; width: 48px; height: 48px;
+      background-image: url('https://play.pokemonshowdown.com/sprites/gen5/celebi.png');
+      background-size: contain; background-repeat: no-repeat; image-rendering: pixelated;
+      pointer-events: none; z-index: 9999; display: none;
+    }
+    .celebi-animating { display: block !important; animation: celebiWalk 3.5s steps(4) forwards; }
+
+    @keyframes verticalBeam {
+      0% { height: 0; opacity: 0; }
+      50% { height: 80vh; opacity: 1; }
+      100% { height: 80vh; opacity: 0; }
+    }
+    .light-beam {
+      position: absolute; bottom: 0; left: 50%; width: 50px;
+      background: linear-gradient(to top, rgba(255,255,255,0.9), rgba(0,229,255,0.3), transparent);
+      transform: translateX(-50%); pointer-events: none; animation: verticalBeam 0.7s ease-out forwards; z-index: 500;
+    }
   </style>
 </head>
 <body>
@@ -309,6 +353,39 @@
       } catch(e) {}
     }
 
+    /* --- FUNZIONI DI SUPPORTO PER GLI EFFETTI VISIVI AGGIUNTIVI --- */
+    function triggerCelebiEasterEgg() {
+      let celebi = document.getElementById('celebi-easter-egg');
+      if (!celebi) {
+        celebi = document.createElement('div');
+        celebi.id = 'celebi-easter-egg';
+        document.body.appendChild(celebi);
+      }
+      celebi.classList.remove('celebi-animating');
+      void celebi.offsetWidth; 
+      celebi.classList.add('celebi-animating');
+    }
+
+    function triggerScreenEffects(containerId, maxRarity) {
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.classList.add('shake');
+        setTimeout(() => container.classList.remove('shake'), 400);
+      }
+      if (container && (maxRarity === 'Leggendaria' || maxRarity === 'Epica')) {
+        container.style.boxShadow = maxRarity === 'Leggendaria' ? '0 0 30px #ffd700' : '0 0 30px #a335ee';
+        setTimeout(() => container.style.boxShadow = 'none', 1000);
+      }
+    }
+
+    function createLightBeam(parentElement) {
+      if (!parentElement) return;
+      const beam = document.createElement('div');
+      beam.className = 'light-beam';
+      parentElement.appendChild(beam);
+      setTimeout(() => beam.remove(), 700);
+    }
+
     /* ----------------------------------------------------
        GESTIONE DRAG/HOLD (ORIZZONTALE PER BUSTINA, VERTICALE PER CARTE)
     ---------------------------------------------------- */
@@ -354,10 +431,15 @@
       let dy = clientY - dragStartY;
 
       if (dragType === 'pack') {
-        // Strappo orizzontale a destra
         if (dx > 50) {
           dragObj.classList.add('booster-torn');
           playRetroSound('swipe');
+          
+          // Attiva l'easter egg di Celebi casualmente o in base alla fortuna
+          if (Math.random() < 0.4) {
+            triggerCelebiEasterEgg();
+          }
+
           dragObj = null; 
           setTimeout(() => {
             document.getElementById('booster-container').style.display = 'none';
@@ -365,7 +447,7 @@
           }, 600);
         }
       } else if (dragType === 'card') {
-        if (dy > 0) dy = 0; // Solo movimento in alto
+        if (dy > 0) dy = 0;
         dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
       }
     }
@@ -388,8 +470,6 @@
       dragObj = null;
       dragType = '';
     }
-
-    /* ---------------------------------------------------- */
 
     let userData = null;
     let drawnCards = [];
@@ -654,8 +734,15 @@
         drawnCards.push({ ...randomCard, isDuplicate });
       }
 
-      // Genera sbrilluccichio / coriandoli (dorati se c'è una carta leggendaria)
       generateSparkles(hasLegendary);
+
+      // Trigger screen effects in base alla massima rarità trovata
+      let maxRar = 'Comune';
+      if (hasLegendary) maxRar = 'Leggendaria';
+      else if (drawnCards.some(c => c.rarity === 'Epica')) maxRar = 'Epica';
+      else if (drawnCards.some(c => c.rarity === 'Rara')) maxRar = 'Rara';
+      
+      triggerScreenEffects('part4', maxRar);
 
       drawnCards.forEach((card, index) => {
         const wrapper = document.createElement('div');
@@ -663,9 +750,10 @@
         wrapper.style.zIndex = 4 - index; 
         
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
+        let foilClass = (card.rarity === 'Leggendaria' || card.rarity === 'Epica' || card.rarity === 'Rara') ? ' card-foil' : '';
 
         wrapper.innerHTML = `
-          <div class="card">
+          <div class="card${foilClass}">
             <div class="card-title">${card.name}</div>
             <img src="${card.image_url}" alt="card">
             <div class="card-rarity">${card.rarity}</div>
@@ -693,6 +781,10 @@
     function performSwipe(wrapper) {
       if (wrapper.classList.contains('card-swiped')) return;
       playRetroSound('swipe');
+      
+      // Crea il fascio di luce verticale all'uscita della carta
+      createLightBeam(document.getElementById('cards-area'));
+
       wrapper.classList.add('card-swiped');
       cardsSwipedCount++;
 
@@ -709,7 +801,6 @@
       const tbody = document.getElementById('part4-summary-body');
       tbody.innerHTML = '';
 
-      // Recupera inventario attuale da Supabase per calcolare le quantità aggiornate in tempo reale
       let inventory = [];
       try {
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
@@ -719,7 +810,6 @@
       const counts = {};
       inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
 
-      // Simula momentaneamente l'aggiunta delle nuove carte non doppione per mostrarle corrette nel riepilogo
       const tempCounts = { ...counts };
       drawnCards.forEach(card => {
         if (!card.isDuplicate) {
