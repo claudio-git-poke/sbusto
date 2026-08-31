@@ -103,6 +103,7 @@
       gap: 15px;
       cursor: default;
       transition: transform 0.3s ease;
+      width: 90%;
     }
     
     .pokeball-loader-container.ready { cursor: pointer; }
@@ -119,8 +120,8 @@
     }
 
     .pokeball {
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
       background: linear-gradient(to bottom, #ff3b3b 0%, #ff3b3b 48%, #222 48%, #222 52%, #fff 52%, #fff 100%);
       border: 4px solid #111;
       border-radius: 50%;
@@ -143,7 +144,7 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 18px; height: 18px;
+      width: 16px; height: 16px;
       background: #fff;
       border: 4px solid #222;
       border-radius: 50%;
@@ -154,7 +155,7 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 6px; height: 6px;
+      width: 5px; height: 5px;
       background: #ff3b3b;
       border-radius: 50%;
     }
@@ -168,12 +169,15 @@
     }
 
     #preload-text {
-      font-size: 6px;
-      letter-spacing: 1px;
+      font-size: 5.5px;
+      line-height: 9px;
+      letter-spacing: 0.5px;
       text-align: center;
       color: #ffd700;
       text-shadow: 1px 1px #000;
-      min-height: 15px;
+      min-height: 20px;
+      max-width: 100%;
+      word-break: break-word;
     }
 
     .turning-on { animation: turnOn 1.5s forwards; }
@@ -323,7 +327,7 @@
               <div class="pokeball-center-inner"></div>
             </div>
           </div>
-          <div id="preload-text">CARICAMENTO...</div>
+          <div id="preload-text">Connessione al server...</div>
         </div>
       </div>
 
@@ -461,30 +465,38 @@
       } catch(e) {}
     }
 
-    // SCARICA LE FRASI DAL BUCKET SUPABASE O USA IL FALLBACK LOCALE
-    async function getDynamicOrFallbackQuote(streakDay) {
+    // SCARICA E SCEGLIE UNA FRASA CASUALE (USANDO LA DATA ODIERNA COME SEED)
+    async function getRandomQuoteFromBucket() {
+      const fallbackQuotes = [
+        "Catturando Snorlax...",
+        "Cercando il Pokéflauto...",
+        "Gettando via la Pietrastante...",
+        "Consultando il Pokédex...",
+        "Svegliando uno Snorlax assonnato...",
+        "Lucidando le Medaglie...",
+        "Ricaricando il Repellente..."
+      ];
+
       try {
         const { data: publicUrlData } = _supabase.storage.from('quotes').getPublicUrl('loading_quotes.json');
         const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
         if (response.ok) {
           const quotesArray = await response.json();
           if (Array.isArray(quotesArray) && quotesArray.length > 0) {
-            return quotesArray[(streakDay - 1) % quotesArray.length];
+            // Genera un seed basato sulla data odierna (es. "2026-03-30") per mantenere la stessa frase per tutto il giorno, oppure usa Math.random() se la vuoi casuale ad ogni caricamento.
+            const todayStr = new Date().toISOString().slice(0, 10);
+            let seed = 0;
+            for (let i = 0; i < todayStr.length; i++) {
+              seed = (seed * 31 + todayStr.charCodeAt(i)) % 10000000;
+            }
+            const randomIndex = seed % quotesArray.length;
+            return quotesArray[randomIndex];
           }
         }
       } catch (e) {}
 
-      // Fallback in caso di errore di rete o file mancante
-      const pokemonQuotes = [
-        "Un viaggio di mille miglia inizia con un singolo passo... o con uno Starter!",
-        "Allenati duramente e diventerai un Maestro di Legge e di Lotta!",
-        "Anche i Pokémon più piccoli possono evolversi in leggende se curati ogni giorno.",
-        "Il legame tra Allenatore e compagni supera ogni ostacolo temporale.",
-        "Non arrenderti mai, la vittoria è dietro l'angolo come un incontro casuale di 1%!",
-        "Ricorda: catturarli tutti richiede costanza, esattamente come la tua Streak!",
-        "La polvere di stella accumulata oggi brillerà sul tuo album domani."
-      ];
-      return pokemonQuotes[(streakDay - 1) % pokemonQuotes.length];
+      // Ritorna una casuale dai fallback se fallisce il fetch
+      return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
     }
 
     function playHighVolumeSound(type) {
@@ -783,7 +795,9 @@
       
       const textEl = document.getElementById('preload-text');
       const wrapperEl = document.getElementById('pokeball-wrapper');
-      textEl.innerText = "PRECARICAMENTO...";
+      
+      // MOSTRA SUBITO UNA FRASA CASUALE DAL FILE JSON (O FALLBACK)
+      textEl.innerText = await getRandomQuoteFromBucket();
       wrapperEl.classList.add('shaking');
       wrapperEl.classList.remove('ready');
 
@@ -806,18 +820,16 @@
         } catch(e) { cutsceneData = null; }
 
         if (!cutsceneData) {
-          const dailyMessage = await getDynamicOrFallbackQuote(userData.streak_day);
           cutsceneData = {
             background: '', music: '',
             actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: dailyMessage, start: 0, duration: 3 }]
+            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: "Benvenuto nel tuo nuovo giorno di avventura!", start: 0, duration: 3 }]
           };
         }
       })();
 
       await Promise.all([dataFetchPromise, minTimer]);
       isResourcesLoaded = true;
-      textEl.innerText = "TOCCA LA POKÉBALL!";
       wrapperEl.classList.remove('shaking');
       wrapperEl.classList.add('ready');
     }
