@@ -72,7 +72,7 @@
     #part1 { background: #111; color: #fff; }
     #part2 { background: #000; }
     
-    /* --- SCHERMATA PART 2 BIS (PRELOAD POKÉBALL INTERATTIVA) --- */
+    /* --- SCHERMATA PART 2 BIS (PRELOAD POKÉBALL INTERATTIVA A SCHERMO INTERO) --- */
     #part2bis { 
       background: #1a140f; 
       color: #f4e8c1; 
@@ -81,7 +81,6 @@
       align-items: center; 
       justify-content: center; 
       position: relative; 
-      font-size: 6px;
     }
     
     .pokeball-loader-container {
@@ -97,31 +96,22 @@
       cursor: pointer;
     }
 
-    /* Animazione di oscillazione della Pokéball (stile cattura) */
-    .pokeball-loader-container:not(.ready) .pokeball {
-      animation: wobblePokeball 1.2s infinite ease-in-out;
+    /* Animazione di oscillazione stile cattura Pokémon */
+    .pokeball-loader-container.shaking .pokeball {
+      animation: pokeballWobble 0.8s infinite ease-in-out;
     }
 
-    @keyframes wobblePokeball {
+    @keyframes pokeballWobble {
       0% { transform: rotate(0deg); }
       15% { transform: rotate(-15deg); }
-      30% { transform: rotate(15deg); }
+      30% { transform: rotate(12deg); }
       45% { transform: rotate(-10deg); }
-      60% { transform: rotate(10deg); }
+      60% { transform: rotate(6deg); }
       75% { transform: rotate(0deg); }
       100% { transform: rotate(0deg); }
     }
 
-    .pokeball-loader-container.ready .pokeball {
-      animation: bouncePokeball 1s infinite alternate ease-in-out;
-    }
-
-    @keyframes bouncePokeball {
-      0% { transform: translateY(0) scale(1); }
-      100% { transform: translateY(-6px) scale(1.04); }
-    }
-
-    /* Disegno Pokéball in CSS a schermo intero nella part2bis */
+    /* Disegno Pokéball CSS */
     .pokeball {
       width: 70px;
       height: 70px;
@@ -131,11 +121,16 @@
       position: relative;
       box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
       transition: filter 0.3s ease;
-      transform-origin: bottom center;
     }
 
     .pokeball-loader-container.ready .pokeball {
       filter: drop-shadow(0 0 12px #ffd700);
+      animation: bounceReady 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes bounceReady {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(-5px) scale(1.05); }
     }
 
     .pokeball-center {
@@ -164,7 +159,7 @@
 
     /* Effetto apertura/flash della Pokéball al click */
     .pokeball.opening {
-      animation: openPokeballAnim 0.6s forwards ease-in-out !important;
+      animation: openPokeballAnim 0.6s forwards ease-in-out;
     }
     @keyframes openPokeballAnim {
       0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
@@ -428,15 +423,15 @@
 
       <div id="part2" class="screen"></div>
 
-      <!-- SCHERMATA DI PRELOAD CON POKÉBALL INTERATTIVA -->
+      <!-- SCHERMATA PART 2 BIS (PRELOAD CON POKÉBALL INTERATTIVA) -->
       <div id="part2bis" class="screen">
-        <div id="pokeball-wrapper" class="pokeball-loader-container">
+        <div id="pokeball-wrapper" class="pokeball-loader-container shaking">
           <div class="pokeball" id="main-pokeball">
             <div class="pokeball-center">
               <div class="pokeball-center-inner"></div>
             </div>
           </div>
-          <div id="preload-text">CARICAMENTO DATI...</div>
+          <div id="preload-text">CARICAMENTO...</div>
         </div>
       </div>
 
@@ -816,7 +811,7 @@
     let cutsceneTime = 0;
     let isDialogueActive = false;
     let triggeredEvents = new Set();
-    let isResourcesLoaded = false; // Stato per verificare caricamento e attesa minima di 2s
+    let isResourcesLoaded = false;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -846,7 +841,7 @@
       }, 1500);
     }
 
-    // GESTIONE PRELOAD + TIMER MINIMO DI 2 SECONDI + CLICLABILITÀ POKÉBALL
+    // Gestione Preload con Pokéball che si agita per almeno 2 secondi
     async function goToPart2Bis() {
       showScreen('part2bis');
       isResourcesLoaded = false;
@@ -854,12 +849,14 @@
       const textEl = document.getElementById('preload-text');
       const wrapperEl = document.getElementById('pokeball-wrapper');
       textEl.innerText = "CARICAMENTO DATI...";
+      wrapperEl.classList.add('shaking');
       wrapperEl.classList.remove('ready');
 
-      // Avviamo in parallelo il caricamento dati/risorse e il timer minimo di 2 secondi
-      const minTimerPromise = new Promise(resolve => setTimeout(resolve, 2000));
+      // Creiamo un timer minimo di 2 secondi per l'animazione di agitazione della Pokéball
+      const minTimer = new Promise(resolve => setTimeout(resolve, 2000));
 
-      const loadTask = (async () => {
+      // Caricamento dati e risorse asincrone
+      const dataFetchPromise = (async () => {
         try {
           const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
           if (error) console.error("Errore recupero user_state:", error);
@@ -891,21 +888,21 @@
 
         if (cutsceneData.background) {
           const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
-          promises.push(new Promise((resolve) => {
+          promises.push(new Promise((resolveImg) => {
             const img = new Image();
             img.src = bgUrl;
-            img.onload = resolve;
-            img.onerror = resolve;
+            img.onload = resolveImg;
+            img.onerror = resolveImg;
           }));
         }
 
         if (cutsceneData.music) {
           const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
-          promises.push(new Promise((resolve) => {
+          promises.push(new Promise((resolveAudio) => {
             const audio = document.getElementById('gb-music');
             audio.src = musicUrl;
             audio.load();
-            resolve();
+            resolveAudio();
           }));
         }
 
@@ -914,42 +911,43 @@
           if (actor.asset) {
             assetUrl = actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
           }
-          promises.push(new Promise((resolve) => {
+          promises.push(new Promise((resolveActor) => {
             const img = new Image();
             img.src = assetUrl;
-            img.onload = resolve;
-            img.onerror = resolve;
+            img.onload = resolveActor;
+            img.onerror = resolveActor;
           }));
         });
 
-        await Promise.race([
-          Promise.all(promises),
-          new Promise(resolve => setTimeout(resolve, 3000))
-        ]);
+        await Promise.all(promises);
       })();
 
-      // Aspettiamo sia il caricamento completo che siano passati almeno i 2 secondi richiesti
-      await Promise.all([loadTask, minTimerPromise]);
+      // Attendiamo sia il caricamento completo dei dati che il completamento dei 2 secondi minimi
+      await Promise.all([dataFetchPromise, minTimer]);
 
-      // --- RISORSE PRONTE & TIMER DI 2s SCADUTO ---
+      // Risorse pronte e 2 secondi trascorsi: la Pokéball diventa cliccabile
       isResourcesLoaded = true;
       textEl.innerText = "TOCCA LA POKÉBALL!";
+      wrapperEl.classList.remove('shaking');
       wrapperEl.classList.add('ready');
     }
 
-    // Gestore del click sulla Pokéball nella part2bis
+    // Event listener per il click sulla Pokéball pronta in part2bis
     document.getElementById('pokeball-wrapper').addEventListener('click', () => {
-      if (!isResourcesLoaded) return; // Non fa nulla se sta ancora caricando o non sono passati i 2s
+      if (!isResourcesLoaded) return; // Se sta ancora caricando o agitando, ignora
       
-      isResourcesLoaded = false; // Evita doppi click
-      playHighVolumeSound('laser'); // Suono di attivazione / apertura
+      isResourcesLoaded = false; // Impedisce doppi click
+      playHighVolumeSound('laser'); // Suono di apertura
       
       const pokeballEl = document.getElementById('main-pokeball');
       const textEl = document.getElementById('preload-text');
+      const wrapperEl = document.getElementById('pokeball-wrapper');
+      
       textEl.innerText = "";
+      wrapperEl.classList.remove('ready');
       pokeballEl.classList.add('opening');
 
-      // Transizione fluida alla part3 dopo l'animazione di apertura
+      // Transizione fluida alla part3 dopo l'animazione di apertura (600ms)
       setTimeout(() => {
         pokeballEl.classList.remove('opening');
         checkAndGoToPart3Ready();
