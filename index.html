@@ -408,8 +408,8 @@
 
     const STORAGE_AUDIO_URL = `${SUPABASE_URL}/storage/v1/object/public/soundfx`;
     const externalSoundEffects = {
-      strappare: new Audio(`${STORAGE_AUDIO_URL}/strappare.mp3`),
-      swush: new Audio(`${STORAGE_AUDIO_URL}/swush.mp3`)
+      strappare: `${STORAGE_AUDIO_URL}/strappare.mp3`,
+      swush: `${STORAGE_AUDIO_URL}/swush.mp3`
     };
 
     let forcedRarity = null;
@@ -437,16 +437,37 @@
     function playHighVolumeSound(type) {
       initAudio();
 
-      // Tentativo di riproduzione file MP3 da Supabase con fallback automatico sul sintetizzatore se fallisce
       if (type === 'laser' || type === 'swipe') {
         const soundKey = type === 'laser' ? 'strappare' : 'swush';
-        const sound = externalSoundEffects[soundKey];
-        if (sound) {
-          sound.currentTime = 0;
-          sound.play().catch(() => {
-            playFallbackSynth(type);
-          });
-          return;
+        const audioUrl = externalSoundEffects[soundKey];
+        
+        if (audioUrl) {
+          // Riproduzione MP3 da Supabase incanalata nella Web Audio API per amplificare il volume
+          const audio = new Audio(audioUrl);
+          audio.crossOrigin = "anonymous";
+          
+          try {
+            const source = audioCtx.createMediaElementSource(audio);
+            const gainNode = audioCtx.createGain();
+            
+            // VOLUME MAGNIFICATION: impostato a 2.5 (250% del volume originale)
+            gainNode.gain.value = 2.5;
+            
+            source.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            audio.play().catch(() => {
+              playFallbackSynth(type);
+            });
+            return;
+          } catch (e) {
+            // Se fallisce il routing MediaElement (es. restrizioni cross-origin), prova il play standard con volume massimo o fallback
+            audio.volume = 1.0;
+            audio.play().catch(() => {
+              playFallbackSynth(type);
+            });
+            return;
+          }
         }
       }
       playFallbackSynth(type);
@@ -456,11 +477,11 @@
       try {
         const now = audioCtx.currentTime;
         const masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0.8, now);
+        // Amplificato anche il sintetizzatore di fallback a 1.5
+        masterGain.gain.setValueAtTime(1.5, now);
         masterGain.connect(audioCtx.destination);
 
         if (type === 'laser' || type === 'strappare') {
-          // Rumore bianco per simulare strappo / taglio
           const bufferSize = audioCtx.sampleRate * 0.3;
           const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
           const data = buffer.getChannelData(0);
@@ -474,7 +495,7 @@
           filter.frequency.exponentialRampToValueAtTime(300, now + 0.3);
 
           const gain = audioCtx.createGain();
-          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.setValueAtTime(0.8, now);
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
           noise.connect(filter);
@@ -487,7 +508,7 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(400, now);
           osc.frequency.exponentialRampToValueAtTime(120, now + 0.2);
-          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.setValueAtTime(0.7, now);
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
           osc.connect(gain);
           gain.connect(masterGain);
@@ -499,7 +520,7 @@
           osc.type = 'square';
           osc.frequency.setValueAtTime(587.33, now);
           osc.frequency.setValueAtTime(880.00, now + 0.08);
-          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.setValueAtTime(0.6, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
           osc.connect(gain);
           gain.connect(masterGain);
@@ -511,7 +532,7 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(400, now);
           osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
-          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.setValueAtTime(0.8, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
           osc.connect(gain);
           gain.connect(masterGain);
