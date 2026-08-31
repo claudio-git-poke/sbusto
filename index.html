@@ -72,8 +72,85 @@
     #part1 { background: #111; color: #fff; }
     #part2 { background: #000; }
     
-    /* --- NUOVA SCHERMATA PART 2 BIS (PRELOAD) --- */
-    #part2bis { background: #2c221e; color: #f4e8c1; font-size: 7px; line-height: 12px; }
+    /* --- STILI POKÉBALL PRELOAD & APERTURA --- */
+    #part2bis { background: #1a140f; color: #f4e8c1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+    
+    .pokeball-loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      cursor: default;
+      transition: transform 0.3s ease;
+    }
+    
+    .pokeball-loader-container.ready {
+      cursor: pointer;
+      animation: bouncePokeball 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes bouncePokeball {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(-8px) scale(1.05); }
+    }
+
+    .pokeball {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(to bottom, #ff3b3b 0%, #ff3b3b 48%, #222 48%, #222 52%, #fff 52%, #fff 100%);
+      border: 4px solid #111;
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
+      transition: filter 0.3s ease;
+    }
+
+    .pokeball-loader-container.ready .pokeball {
+      filter: drop-shadow(0 0 12px #ffd700);
+    }
+
+    .pokeball-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border: 4px solid #222;
+      border-radius: 50%;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+    }
+
+    .pokeball-center-inner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 6px;
+      background: #ff3b3b;
+      border-radius: 50%;
+    }
+
+    .pokeball.opening {
+      animation: openPokeballAnim 0.6s forwards ease-in-out;
+    }
+    @keyframes openPokeballAnim {
+      0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+      40% { transform: scale(1.3) rotate(-10deg); filter: brightness(3); }
+      70% { transform: scale(1.5) rotate(10deg); filter: brightness(5); background: #fff; }
+      100% { transform: scale(3); opacity: 0; filter: brightness(10); }
+    }
+
+    #preload-text {
+      font-size: 6px;
+      letter-spacing: 1px;
+      text-align: center;
+      color: #ffd700;
+      text-shadow: 1px 1px #000;
+      min-height: 15px;
+    }
 
     .turning-on { animation: turnOn 1.5s forwards; }
     @keyframes turnOn {
@@ -321,10 +398,16 @@
 
       <div id="part2" class="screen"></div>
 
-      <!-- NUOVA SCHERMATA DI PRELOAD -->
+      <!-- SCHERMATA DI PRELOAD CON POKÉBALL INTERATTIVA -->
       <div id="part2bis" class="screen">
-        <div style="color: #ffd700; margin-bottom: 8px;">CARICAMENTO DATI...</div>
-        <div style="font-size: 6px;">Preparazione del mondo antico in corso. Attendere prego.</div>
+        <div id="pokeball-wrapper" class="pokeball-loader-container">
+          <div class="pokeball" id="main-pokeball">
+            <div class="pokeball-center">
+              <div class="pokeball-center-inner"></div>
+            </div>
+          </div>
+          <div id="preload-text">CARICAMENTO...</div>
+        </div>
       </div>
 
       <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
@@ -703,6 +786,7 @@
     let cutsceneTime = 0;
     let isDialogueActive = false;
     let triggeredEvents = new Set();
+    let isResourcesLoaded = false;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -728,14 +812,18 @@
       p2.classList.add('turning-on');
       setTimeout(() => { 
         p2.classList.remove('turning-on');
-        // MODIFICA: Invece di andare direttamente a part3, andiamo a part2bis per precaricare
         goToPart2Bis(); 
       }, 1500);
     }
 
-    // NUOVA FUNZIONE: Gestisce il precaricamento di tutti gli elementi pesanti
     async function goToPart2Bis() {
       showScreen('part2bis');
+      isResourcesLoaded = false;
+      
+      const textEl = document.getElementById('preload-text');
+      const wrapperEl = document.getElementById('pokeball-wrapper');
+      textEl.innerText = "CARICAMENTO DATI...";
+      wrapperEl.classList.remove('ready');
 
       try {
         const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
@@ -764,21 +852,18 @@
         };
       }
 
-      // Precaricamento delle risorse multimediali in memoria (Immagini e Audio)
       const promises = [];
 
-      // 1. Preload Sfondo Cutscene
       if (cutsceneData.background) {
         const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
         promises.push(new Promise((resolve) => {
           const img = new Image();
           img.src = bgUrl;
           img.onload = resolve;
-          img.onerror = resolve; // Continua comunque in caso di errore
+          img.onerror = resolve;
         }));
       }
 
-      // 2. Preload Musica Cutscene
       if (cutsceneData.music) {
         const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
         promises.push(new Promise((resolve) => {
@@ -789,7 +874,6 @@
         }));
       }
 
-      // 3. Preload Sprite Attori
       (cutsceneData.actors || []).forEach(actor => {
         let assetUrl = userData.avatar_url;
         if (actor.asset) {
@@ -803,15 +887,32 @@
         }));
       });
 
-      // Attendiamo che tutto sia caricato (con un timeout di sicurezza massimo di 3 secondi per evitare blocchi di rete)
       await Promise.race([
         Promise.all(promises),
         new Promise(resolve => setTimeout(resolve, 3000))
       ]);
 
-      // Fatto! Passiamo a part3 e avviamo la cutscene in modo fluido
-      checkAndGoToPart3Ready();
+      isResourcesLoaded = true;
+      textEl.innerText = "TOCCA LA POKÉBALL!";
+      wrapperEl.classList.add('ready');
     }
+
+    document.getElementById('pokeball-wrapper').addEventListener('click', () => {
+      if (!isResourcesLoaded) return;
+      
+      isResourcesLoaded = false;
+      playHighVolumeSound('laser');
+      
+      const pokeballEl = document.getElementById('main-pokeball');
+      const textEl = document.getElementById('preload-text');
+      textEl.innerText = "";
+      pokeballEl.classList.add('opening');
+
+      setTimeout(() => {
+        pokeballEl.classList.remove('opening');
+        checkAndGoToPart3Ready();
+      }, 600);
+    });
 
     function checkAndGoToPart3Ready() {
       showScreen('part3');
@@ -1216,7 +1317,7 @@
       inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
 
       const tbody = document.getElementById('excel-table-body');
-      tbody.innerHTML = '`';
+      tbody.innerHTML = '';
 
       cards.forEach(card => {
         const qty = counts[card.id] || 0;
