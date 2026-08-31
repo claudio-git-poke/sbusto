@@ -290,7 +290,8 @@
 
   <div id="debug-panel">
     <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL F12 ]</div>
-    <button onclick="testSupabaseConnection()">Test Connessione Supabase</button>
+    <button onclick="testSupabaseConnection()">Test Connessione</button>
+    <button onclick="playBlingSound()">Test Suono Bling 🎵</button>
     <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria!');">Forza Leggendaria</button>
     <button onclick="forcedRarity = null; alert('Filtro rimosso.');">Reset Filtro</button>
   </div>
@@ -433,6 +434,54 @@
       }
     }
 
+    // NUOVO SUONO "BLING" DI SUCCESSO (Sintetizzatore trionfale)
+    function playBlingSound() {
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.8, now);
+        masterGain.connect(audioCtx.destination);
+
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // Do, Mi, Sol, Do (Ottava alta)
+        notes.forEach((freq, index) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + (index * 0.08));
+          
+          gain.gain.setValueAtTime(0.3, now + (index * 0.08));
+          gain.gain.exponentialRampToValueAtTime(0.001, now + (index * 0.08) + 0.3);
+          
+          osc.connect(gain);
+          gain.connect(masterGain);
+          
+          osc.start(now + (index * 0.08));
+          osc.stop(now + (index * 0.08) + 0.3);
+        });
+      } catch(e) {}
+    }
+
+    // LOGICA FRASI GIORNALIERE A TEMA POKEMON BASATE SULLA DATA
+    function getDailyPokemonQuote(streakDay) {
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 0);
+      const diff = (now - startOfYear) + ((startOfYear.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+      const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+      const pokemonQuotes = [
+        "Un viaggio di mille miglia inizia con un singolo passo... o con uno Starter!",
+        "Allenati duramente e diventerai un Maestro di Legge e di Lotta!",
+        "Anche i Pokémon più piccoli possono evolversi in leggende se curati ogni giorno.",
+        "Il legame tra Allenatore e compagni supera ogni ostacolo temporale.",
+        "Non arrenderti mai, la vittoria è dietro l'angolo come un incontro casuale di 1%!",
+        "Ricorda: catturarli tutti richiede costanza, esattamente come la tua Streak!",
+        "La polvere di stella accumulata oggi brillerà sul tuo album domani."
+      ];
+
+      return pokemonQuotes[dayOfYear % pokemonQuotes.length];
+    }
+
     function playHighVolumeSound(type) {
       initAudio();
 
@@ -450,16 +499,11 @@
             gainNode.gain.value = 2.5;
             source.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
-            audio.play().catch(() => {
-              playFallbackSynth(type);
-            });
+            audio.play().catch(() => { playFallbackSynth(type); });
             return;
           } catch (e) {
             audio.volume = 1.0;
-            audio.play().catch(() => {
-              playFallbackSynth(type);
-            });
+            audio.play().catch(() => { playFallbackSynth(type); });
             return;
           }
         }
@@ -474,20 +518,7 @@
         masterGain.gain.setValueAtTime(1.5, now);
         masterGain.connect(audioCtx.destination);
 
-        if (type === 'gb_click') {
-          // Bip digitale/quadro in stile GameBoy classico
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(987.77, now); // Nota B5
-          osc.frequency.setValueAtTime(1318.51, now + 0.06); // Nota E6
-          gain.gain.setValueAtTime(0.5, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-          osc.connect(gain);
-          gain.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.15);
-        } else if (type === 'laser' || type === 'strappare') {
+        if (type === 'laser' || type === 'strappare') {
           const bufferSize = audioCtx.sampleRate * 0.3;
           const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
           const data = buffer.getChannelData(0);
@@ -741,29 +772,27 @@
       }, 1500);
     }
 
-    // Pre-caricamento unificato completo (Parte 3 + Parte 4, incluse risorse multimediali e random reale)
+    // AGGIORNATO: PRE-CARICAMENTO COMPLETO DELLA PARTE 3 IN BACKGROUND
     async function goToPart2Bis() {
       showScreen('part2bis');
       isResourcesLoaded = false;
       
       const textEl = document.getElementById('preload-text');
       const wrapperEl = document.getElementById('pokeball-wrapper');
-      textEl.innerText = "CARICAMENTO DATI & RISORSE...";
+      textEl.innerText = "PRECARICAMENTO...";
       wrapperEl.classList.add('shaking');
       wrapperEl.classList.remove('ready');
 
-      const minTimer = new Promise(resolve => setTimeout(resolve, 2000));
+      const minTimer = new Promise(resolve => setTimeout(resolve, 1500));
 
-      const comprehensivePreloadPromise = (async () => {
-        // 1. Fetch Stato Utente
+      const dataFetchPromise = (async () => {
         try {
-          const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+          const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
           userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
         } catch(e) {
           userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
         }
 
-        // 2. Fetch Cutscene JSON Parte 3
         const fileName = `cutscenes/giorno${userData.streak_day}.json`;
         try {
           const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
@@ -773,76 +802,16 @@
         } catch(e) { cutsceneData = null; }
 
         if (!cutsceneData) {
+          const dailyMessage = getDailyPokemonQuote(userData.streak_day);
           cutsceneData = {
             background: '', music: '',
             actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
+            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: dailyMessage, start: 0, duration: 3 }]
           };
         }
-
-        // 3. Pre-load risorse multimediali della cutscene (sfondi, sprite, musiche)
-        const assetPromises = [];
-        if (cutsceneData.background) {
-          const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
-          assetPromises.push(new Promise(res => { const img = new Image(); img.src = bgUrl; img.onload = res; img.onerror = res; }));
-        }
-        (cutsceneData.actors || []).forEach(actor => {
-          let assetUrl = actor.asset ? (actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`) : userData.avatar_url;
-          assetPromises.push(new Promise(res => { const img = new Image(); img.src = assetUrl; img.onload = res; img.onerror = res; }));
-        });
-        if (cutsceneData.music) {
-          const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
-          assetPromises.push(new Promise(res => { const aud = new Audio(); aud.src = musicUrl; aud.oncanplaythrough = res; aud.onerror = res; }));
-        }
-
-        // 4. Fetch Carte & Inventario per la Parte 4 (Logica di estrazione randomica reale)
-        let allCards = [];
-        let ownedIds = [];
-        try {
-          const [cRes, iRes] = await Promise.all([
-            _supabase.from('cards').select('*'),
-            _supabase.from('user_inventory').select('card_id')
-          ]);
-          if (cRes.data) allCards = cRes.data;
-          if (iRes.data) ownedIds = iRes.data.map(i => i.card_id);
-        } catch(e) {}
-
-        if (allCards.length === 0) {
-          allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
-        }
-
-        const cardsByRarity = {
-          'Comune': allCards.filter(c => c.rarity === 'Comune'),
-          'Rara': allCards.filter(c => c.rarity === 'Rara'),
-          'Epica': allCards.filter(c => c.rarity === 'Epica'),
-          'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
-        };
-
-        function getRandomCardByRarity() {
-          if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
-            return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
-          }
-          const rand = Math.random() * 100;
-          let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
-          let pool = cardsByRarity[targetRarity];
-          if (!pool || pool.length === 0) pool = allCards;
-          return pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        // Pre-generazione delle 4 carte estratte pronte per la Parte 4
-        drawnCards = [];
-        for (let i = 0; i < 4; i++) {
-          const randomCard = getRandomCardByRarity();
-          const isDuplicate = ownedIds.includes(randomCard.id);
-          drawnCards.push({ ...randomCard, isDuplicate });
-          // Pre-carica anche le immagini delle carte
-          assetPromises.push(new Promise(res => { const img = new Image(); img.src = randomCard.image_url; img.onload = res; img.onerror = res; }));
-        }
-
-        await Promise.all(assetPromises);
       })();
 
-      await Promise.all([comprehensivePreloadPromise, minTimer]);
+      await Promise.all([dataFetchPromise, minTimer]);
       isResourcesLoaded = true;
       textEl.innerText = "TOCCA LA POKÉBALL!";
       wrapperEl.classList.remove('shaking');
@@ -852,7 +821,8 @@
     document.getElementById('pokeball-wrapper').addEventListener('click', () => {
       if (!isResourcesLoaded) return;
       isResourcesLoaded = false;
-      playHighVolumeSound('gb_click'); // Suono digitale GameBoy classico richiesto
+      playHighVolumeSound('laser');
+      playBlingSound();
       
       const pokeballEl = document.getElementById('main-pokeball');
       const textEl = document.getElementById('preload-text');
@@ -975,7 +945,6 @@
       }
     }
 
-    // Parte 4: Rendering immediato grazie alle carte già pre-generate e pre-caricate in part2bis
     async function goToPart4() {
       showScreen('part4');
       document.getElementById('booster-container').style.display = 'flex';
@@ -990,6 +959,45 @@
       const container = document.getElementById('cards-stack');
       container.innerHTML = '';
       cardsSwipedCount = 0;
+
+      let allCards = [];
+      let ownedIds = [];
+
+      try {
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if (cData) allCards = cData;
+        if (iData) ownedIds = iData.map(i => i.card_id);
+      } catch(e) {}
+
+      if (allCards.length === 0) {
+        allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+      }
+
+      const cardsByRarity = {
+        'Comune': allCards.filter(c => c.rarity === 'Comune'),
+        'Rara': allCards.filter(c => c.rarity === 'Rara'),
+        'Epica': allCards.filter(c => c.rarity === 'Epica'),
+        'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
+      };
+
+      function getRandomCardByRarity() {
+        if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
+          return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
+        }
+        const rand = Math.random() * 100;
+        let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
+        let pool = cardsByRarity[targetRarity];
+        if (!pool || pool.length === 0) pool = allCards;
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      drawnCards = [];
+      for (let i = 0; i < 4; i++) {
+        const randomCard = getRandomCardByRarity();
+        const isDuplicate = ownedIds.includes(randomCard.id);
+        drawnCards.push({ ...randomCard, isDuplicate });
+      }
 
       drawnCards.forEach((card, index) => {
         const wrapper = document.createElement('div');
