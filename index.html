@@ -141,14 +141,13 @@
       100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
     }
 
-    /* --- NUOVO SISTEMA DI VISUALIZZAZIONE CARTE LUSSO (Adattato al GameBoy) --- */
+    /* --- CARTA POKÉMON LUSSO (Adattata da github2 al GameBoy) --- */
     .card-container { position: relative; width: 155px; height: 215px; margin-top: 2px; z-index: 5; }
     .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: center; }
     .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
     .card-wrapper.snap-back { transition: transform 0.3s ease; }
     .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
     
-    /* Stile carta derivato dal tuo snippet di lusso */
     .pokemon-card {
       width: 155px;
       height: 215px;
@@ -163,9 +162,10 @@
       position: relative;
       overflow: hidden;
       pointer-events: none;
+      transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
     }
 
-    /* Rarità */
+    /* 1. Comune */
     .pokemon-card.comune {
       background: radial-gradient(circle at center, #dcdcdc 0%, #b5b5b5 100%);
       border-color: #737373;
@@ -175,6 +175,7 @@
       border-color: #8c8c8c;
     }
 
+    /* 2. Non Comune */
     .pokemon-card.non-comune {
       background: radial-gradient(circle at center, #595959 0%, #383838 100%);
       border-color: #1a1a1a;
@@ -185,6 +186,7 @@
     }
     .pokemon-card.non-comune .card-description-text { color: #d9d9d9; }
 
+    /* 3. Rara */
     .pokemon-card.rara {
       background: radial-gradient(circle at center, #222222 0%, #0d0d0d 100%);
       border-color: #050505;
@@ -196,15 +198,18 @@
     }
     .pokemon-card.rara .card-description-text { color: #cccccc; }
 
+    /* 4. Ultra Rara (Foil Arcobaleno) */
     .pokemon-card.ultra-rara {
       background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
       background-size: 400% 400%;
       animation: rainbowFoil 8s ease infinite;
       border-color: #fff;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.6);
     }
     .pokemon-card.ultra-rara .card-inner-frame {
       background: rgba(20, 20, 20, 0.6);
       border-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(2px);
     }
     .pokemon-card.ultra-rara .card-description-text { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
     
@@ -228,6 +233,7 @@
       100% { transform: translateY(100%) rotate(30deg); }
     }
 
+    /* 5. Leggendaria (Dorata con Scintille) */
     .pokemon-card.leggendaria {
       background: radial-gradient(circle at center, #fff2b2 0%, #d4af37 60%, #856508 100%);
       border-color: #3b2c02;
@@ -241,17 +247,17 @@
     .pokemon-card.leggendaria .card-description-text { color: #2e2202; }
 
     @keyframes goldPulse {
-      0%, 100% { box-shadow: 0 10px 20px rgba(212, 175, 55, 0.5); }
-      50% { box-shadow: 0 10px 35px rgba(255, 215, 0, 0.9); }
+      0%, 100% { box-shadow: 0 10px 20px rgba(212, 175, 55, 0.5), inset 0 0 10px rgba(255, 240, 150, 0.5); }
+      50% { box-shadow: 0 10px 35px rgba(255, 215, 0, 0.9), inset 0 0 20px rgba(255, 255, 200, 0.9); }
     }
 
-    .sparkle-container-card {
+    .sparkle-container {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none; overflow: hidden; z-index: 5;
     }
     .sparkle {
       position: absolute;
-      width: 4px; height: 4px;
+      width: 3px; height: 3px;
       background: #fff;
       border-radius: 50%;
       box-shadow: 0 0 6px #ffeb3b, 0 0 12px #ffc107;
@@ -261,12 +267,14 @@
     .sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
     .sparkle:nth-child(2) { top: 75%; left: 80%; animation-delay: 0.8s; }
     .sparkle:nth-child(3) { top: 40%; left: 85%; animation-delay: 1.5s; }
+    .sparkle:nth-child(4) { top: 80%; left: 25%; animation-delay: 0.4s; }
 
     @keyframes sparkleAnim {
       0%, 100% { transform: scale(0); opacity: 0; }
       50% { transform: scale(1.4); opacity: 1; }
     }
 
+    /* Struttura interna della carta lusso */
     .card-inner-frame {
       background: linear-gradient(135deg, #e6d3b3 0%, #cfb58c 100%);
       border: 2px solid #8c6b48;
@@ -279,17 +287,19 @@
       box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
       z-index: 2;
       position: relative;
+      transition: background 0.4s ease, border-color 0.4s ease;
     }
 
     .title-container {
       position: absolute;
       top: 6px;
       left: 6px;
-      right: 6px;
-      height: 22px;
+      width: 78%;
+      height: 24px;
       background: linear-gradient(to bottom, #4d3825, #2a1f15);
       border: 2px solid #1a130d;
-      border-radius: 6px;
+      border-radius: 5px 5px 12px 5px;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -297,26 +307,23 @@
       box-sizing: border-box;
       z-index: 3;
     }
-    .card-title-text {
-      font-size: 5px;
-      color: #ffd700;
-      font-weight: bold;
-      text-transform: uppercase;
-      text-shadow: 1px 1px #000;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+
+    .unown-svg-title {
+      width: 100%;
+      height: 18px;
+      filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.9));
     }
 
     .card-image-box {
       position: absolute;
-      top: 32px;
+      top: 34px;
       left: 6px;
       right: 6px;
       height: 105px;
       background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%);
       border: 2px solid #5c3d29;
       border-radius: 4px;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -336,7 +343,7 @@
       bottom: 6px;
       left: 6px;
       right: 6px;
-      height: 44px;
+      height: 48px;
       background: rgba(0, 0, 0, 0.15);
       border: 1px solid rgba(0, 0, 0, 0.2);
       border-radius: 4px;
@@ -349,11 +356,13 @@
     }
 
     .card-description-text {
-      font-size: 4.5px;
+      font-family: 'Georgia', serif;
+      font-size: 5px;
       color: #3d2817;
       text-align: center;
       line-height: 1.3;
       font-style: italic;
+      transition: color 0.4s ease;
     }
 
     .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
@@ -1060,7 +1069,6 @@
         
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         
-        // Mappatura delle rarità del DB alle classi CSS di lusso
         let rarityCssClass = 'comune';
         let descMessage = 'Carta Comune: Semplice, un reperto basilare.';
         let rLower = (card.rarity || '').toLowerCase();
@@ -1080,7 +1088,8 @@
         }
 
         let sparkleHTML = rarityCssClass === 'leggendaria' ? `
-          <div class="sparkle-container-card">
+          <div class="sparkle-container">
+            <div class="sparkle"></div>
             <div class="sparkle"></div>
             <div class="sparkle"></div>
             <div class="sparkle"></div>
@@ -1091,13 +1100,25 @@
             ${sparkleHTML}
             <div class="card-inner-frame">
               <div class="title-container">
-                <span class="card-title-text">${card.name}</span>
+                <svg class="unown-svg-title" viewBox="0 0 280 45" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="none" stroke="#d1b280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <g transform="translate(10, 5)"><path d="M4 28 L4 12 L16 24 L16 8"/><circle cx="10" cy="18" r="4" fill="#d1b280"/></g>
+                    <g transform="translate(38, 5)"><circle cx="10" cy="18" r="9"/><circle cx="10" cy="18" r="3" fill="#d1b280"/></g>
+                    <g transform="translate(66, 5)"><path d="M3 28 L3 12 L9 20 L15 12 L15 28"/><circle cx="9" cy="17" r="3.5" fill="#d1b280"/></g>
+                    <g transform="translate(94, 5)"><path d="M14 28 L4 28 L4 8 L14 8"/><path d="M4 18 L11 18"/><circle cx="9" cy="18" r="3.5" fill="#d1b280"/></g>
+                    <g transform="translate(132, 5)"><circle cx="10" cy="14" r="8"/><path d="M10 22 L10 30"/><circle cx="10" cy="14" r="3" fill="#d1b280"/></g>
+                    <g transform="translate(160, 5)"><circle cx="10" cy="18" r="9"/><circle cx="10" cy="18" r="3" fill="#d1b280"/></g>
+                    <g transform="translate(188, 5)"><path d="M10 8 L10 28"/><path d="M4 12 L14 22"/><path d="M4 24 L14 14"/><circle cx="10" cy="18" r="3" fill="#d1b280"/></g>
+                    <g transform="translate(216, 5)"><path d="M14 28 L4 28 L4 8 L14 8"/><path d="M4 18 L11 18"/><path d="M7 3 L11 5"/><circle cx="9" cy="18" r="3.5" fill="#d1b280"/></g>
+                    <g transform="translate(244, 5)"><path d="M3 28 L3 12 L9 20 L15 12 L15 28"/><circle cx="9" cy="17" r="3.5" fill="#d1b280"/></g>
+                  </g>
+                </svg>
               </div>
               <div class="card-image-box">
                 <img src="${card.image_url}" alt="${card.name}">
               </div>
               <div class="card-description-box">
-                <span class="card-description-text">"${descMessage}"</span>
+                <span class="card-description-text">"${card.name}: ${descMessage}"</span>
               </div>
             </div>
             ${dupHTML}
@@ -1249,7 +1270,6 @@
       inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
 
       const tbody = document.getElementById('excel-table-body');
-      tbody.innerHTML = '`';
       tbody.innerHTML = '';
 
       cards.forEach(card => {
