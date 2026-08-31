@@ -483,7 +483,6 @@
         if (response.ok) {
           const quotesArray = await response.json();
           if (Array.isArray(quotesArray) && quotesArray.length > 0) {
-            // Genera un seed basato sulla data odierna (es. "2026-03-30") per mantenere la stessa frase per tutto il giorno, oppure usa Math.random() se la vuoi casuale ad ogni caricamento.
             const todayStr = new Date().toISOString().slice(0, 10);
             let seed = 0;
             for (let i = 0; i < todayStr.length; i++) {
@@ -495,7 +494,6 @@
         }
       } catch (e) {}
 
-      // Ritorna una casuale dai fallback se fallisce il fetch
       return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
     }
 
@@ -796,7 +794,6 @@
       const textEl = document.getElementById('preload-text');
       const wrapperEl = document.getElementById('pokeball-wrapper');
       
-      // MOSTRA SUBITO UNA FRASA CASUALE DAL FILE JSON (O FALLBACK)
       textEl.innerText = await getRandomQuoteFromBucket();
       wrapperEl.classList.add('shaking');
       wrapperEl.classList.remove('ready');
@@ -987,13 +984,23 @@
       } catch(e) {}
 
       if (allCards.length === 0) {
-        allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+        allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', file_name: 'tavoletta-antica' }];
       }
+
+      // Mappatura delle rarità alle rispettive cartelle nei bucket Supabase
+      const rarityFolders = {
+        'Comune': 'comuni',
+        'Non Comune': 'non comuni',
+        'Rara': 'rare',
+        'Ultrarara': 'ultrarare',
+        'Leggendaria': 'leggendarie'
+      };
 
       const cardsByRarity = {
         'Comune': allCards.filter(c => c.rarity === 'Comune'),
+        'Non Comune': allCards.filter(c => c.rarity === 'Non Comune'),
         'Rara': allCards.filter(c => c.rarity === 'Rara'),
-        'Epica': allCards.filter(c => c.rarity === 'Epica'),
+        'Ultrarara': allCards.filter(c => c.rarity === 'Ultrarara'),
         'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
       };
 
@@ -1002,7 +1009,7 @@
           return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
         }
         const rand = Math.random() * 100;
-        let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
+        let targetRarity = rand < 2 ? 'Leggendaria' : rand < 10 ? 'Ultrarara' : rand < 30 ? 'Rara' : rand < 60 ? 'Non Comune' : 'Comune';
         let pool = cardsByRarity[targetRarity];
         if (!pool || pool.length === 0) pool = allCards;
         return pool[Math.floor(Math.random() * pool.length)];
@@ -1015,13 +1022,22 @@
         drawnCards.push({ ...randomCard, isDuplicate });
       }
 
-      drawnCards.forEach((card, index) => {
+      // Renderizzazione e caricamento asincrono di immagini e testi dai bucket dedicati
+      drawnCards.forEach(async (card, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'card-wrapper';
         wrapper.style.zIndex = 4 - index; 
         
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
-        let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Epica' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : 'comune';
+        let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultrarara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
+
+        // Definiamo il nome file di base (es. se nel db salvi file_name o usi lo slug del nome)
+        const baseFileName = card.file_name || card.name.toLowerCase().replace(/\s+/g, '-');
+        const folderName = rarityFolders[card.rarity] || 'comuni';
+
+        // Costruiamo gli URL pubblici dai bucket cards-images e cards-texts
+        const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${folderName}/${baseFileName}.png`;
+        const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${folderName}/${baseFileName}.txt`;
 
         wrapper.innerHTML = `
           <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
@@ -1030,16 +1046,30 @@
                 <span style="font-size: 6px; color: #ffd700;">${card.name}</span>
               </div>
               <div class="card-image-box">
-                <img src="${card.image_url}" alt="${card.name}">
+                <img id="card-img-${index}" src="${imageUrl}" alt="${card.name}" onerror="this.src='https://picsum.photos/200/280'">
               </div>
               <div class="card-description-box">
-                <span class="card-description-text">"${card.rarity}"</span>
+                <span id="card-desc-${index}" class="card-description-text">"${card.rarity}"</span>
               </div>
             </div>
             ${dupHTML}
           </div>
         `;
         container.appendChild(wrapper);
+
+        // Fetch asincrona del file di testo descrittivo dal bucket cards-texts
+        try {
+          const res = await fetch(textUrl);
+          if (res.ok) {
+            const descText = await res.text();
+            const descEl = document.getElementById(`card-desc-${index}`);
+            if (descEl && descText.trim()) {
+              descEl.innerText = `"${descText.trim()}"`;
+            }
+          }
+        } catch (err) {
+          // Fallback silenzioso se il file txt non viene trovato o c'è un errore di rete
+        }
       });
     }
 
