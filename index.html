@@ -986,7 +986,7 @@
         allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', file_name: 'tavoletta-antica' }];
       }
 
-      // Mappatura aggiornata esattamente ai nomi delle tue cartelle su Supabase Storage
+      // Mappatura corretta con spazi gestiti tramite codifica URL
       const rarityFolders = {
         'Comune': 'comuni',
         'Non Comune': 'non%20comuni',
@@ -1053,6 +1053,7 @@
         `;
         container.appendChild(wrapper);
 
+        // Controllo sicuro del testo per evitare errori 400 in console se il file non esiste
         try {
           const res = await fetch(textUrl);
           if (res.ok) {
