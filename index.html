@@ -972,6 +972,7 @@
       container.innerHTML = '';
       cardsSwipedCount = 0;
 
+      // Nomi effettivi delle cartelle su Supabase come da richiesta
       const rarityConfig = [
         { label: 'comuni', name: 'Comune' },
         { label: 'non comuni', name: 'Non Comune' },
@@ -980,11 +981,12 @@
         { label: 'leggendarie', name: 'Leggendaria' }
       ];
 
+      // Percentuali esatte per ciascuna delle 4 carte del pacchetto
       const slotProbabilities = [
-        { 'comuni': 90, 'non comuni': 10 },
-        { 'comuni': 80, 'non comuni': 20 },
-        { 'comuni': 50, 'non comuni': 30, 'rare': 19, 'ultra rare': 1 },
-        { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 }
+        { 'comuni': 90, 'non comuni': 10 },                               // 1° carta
+        { 'comuni': 80, 'non comuni': 20 },                               // 2° carta
+        { 'comuni': 50, 'non comuni': 30, 'rare': 19, 'ultra rare': 1 },    // 3° carta
+        { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 } // 4° carta
       ];
 
       const foldersContent = {};
@@ -1003,7 +1005,7 @@
         }
       }
 
-      const fallbackList = ['tavoletta-antica'];
+      const fallbackList = ['anello1'];
       for (let rc of rarityConfig) {
         if (!foldersContent[rc.label] || foldersContent[rc.label].length === 0) {
           foldersContent[rc.label] = fallbackList;
@@ -1039,7 +1041,7 @@
         }
 
         const fileList = foldersContent[chosenFolder];
-        const randomFileName = fileList[Math.floor(Math.random() * fileList.length)] || 'tavoletta-antica';
+        const randomFileName = fileList[Math.floor(Math.random() * fileList.length)] || 'anello1';
         const rarityObj = rarityConfig.find(r => r.label === chosenFolder);
         const rarityName = rarityObj ? rarityObj.name : 'Comune';
 
@@ -1058,6 +1060,7 @@
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultra Rara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
 
+        // Preleva l'immagine PNG e il testo TXT dalla rispettiva cartella del bucket
         const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${card.folder}/${card.file_name}.png`;
         const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${card.folder}/${card.file_name}.txt`;
 
