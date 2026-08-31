@@ -71,6 +71,10 @@
 
     #part1 { background: #111; color: #fff; }
     #part2 { background: #000; }
+    
+    /* --- NUOVA SCHERMATA PART 2 BIS (PRELOAD) --- */
+    #part2bis { background: #2c221e; color: #f4e8c1; font-size: 7px; line-height: 12px; }
+
     .turning-on { animation: turnOn 1.5s forwards; }
     @keyframes turnOn {
       0% { background: #000; opacity: 0; }
@@ -141,7 +145,7 @@
       100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
     }
 
-    /* --- CARTA POKÉMON LUSSO (Adattata da github2 al GameBoy) --- */
+    /* --- CARTA POKÉMON LUSSO --- */
     .card-container { position: relative; width: 155px; height: 215px; margin-top: 2px; z-index: 5; }
     .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: center; }
     .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
@@ -165,40 +169,17 @@
       transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
     }
 
-    /* 1. Comune */
-    .pokemon-card.comune {
-      background: radial-gradient(circle at center, #dcdcdc 0%, #b5b5b5 100%);
-      border-color: #737373;
-    }
-    .pokemon-card.comune .card-inner-frame {
-      background: linear-gradient(135deg, #eaeaea 0%, #cccccc 100%);
-      border-color: #8c8c8c;
-    }
+    .pokemon-card.comune { background: radial-gradient(circle at center, #dcdcdc 0%, #b5b5b5 100%); border-color: #737373; }
+    .pokemon-card.comune .card-inner-frame { background: linear-gradient(135deg, #eaeaea 0%, #cccccc 100%); border-color: #8c8c8c; }
 
-    /* 2. Non Comune */
-    .pokemon-card.non-comune {
-      background: radial-gradient(circle at center, #595959 0%, #383838 100%);
-      border-color: #1a1a1a;
-    }
-    .pokemon-card.non-comune .card-inner-frame {
-      background: linear-gradient(135deg, #4a4a4a 100%, #2e2e2e 0%);
-      border-color: #141414;
-    }
+    .pokemon-card.non-comune { background: radial-gradient(circle at center, #595959 0%, #383838 100%); border-color: #1a1a1a; }
+    .pokemon-card.non-comune .card-inner-frame { background: linear-gradient(135deg, #4a4a4a 100%, #2e2e2e 0%); border-color: #141414; }
     .pokemon-card.non-comune .card-description-text { color: #d9d9d9; }
 
-    /* 3. Rara */
-    .pokemon-card.rara {
-      background: radial-gradient(circle at center, #222222 0%, #0d0d0d 100%);
-      border-color: #050505;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.95), inset 0 0 15px rgba(0, 0, 0, 0.9);
-    }
-    .pokemon-card.rara .card-inner-frame {
-      background: linear-gradient(135deg, #171717 0%, #080808 100%);
-      border-color: #262626;
-    }
+    .pokemon-card.rara { background: radial-gradient(circle at center, #222222 0%, #0d0d0d 100%); border-color: #050505; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.95), inset 0 0 15px rgba(0, 0, 0, 0.9); }
+    .pokemon-card.rara .card-inner-frame { background: linear-gradient(135deg, #171717 0%, #080808 100%); border-color: #262626; }
     .pokemon-card.rara .card-description-text { color: #cccccc; }
 
-    /* 4. Ultra Rara (Foil Arcobaleno) */
     .pokemon-card.ultra-rara {
       background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
       background-size: 400% 400%;
@@ -206,11 +187,7 @@
       border-color: #fff;
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.6);
     }
-    .pokemon-card.ultra-rara .card-inner-frame {
-      background: rgba(20, 20, 20, 0.6);
-      border-color: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(2px);
-    }
+    .pokemon-card.ultra-rara .card-inner-frame { background: rgba(20, 20, 20, 0.6); border-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(2px); }
     .pokemon-card.ultra-rara .card-description-text { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
     
     @keyframes rainbowFoil {
@@ -233,17 +210,13 @@
       100% { transform: translateY(100%) rotate(30deg); }
     }
 
-    /* 5. Leggendaria (Dorata con Scintille) */
     .pokemon-card.leggendaria {
       background: radial-gradient(circle at center, #fff2b2 0%, #d4af37 60%, #856508 100%);
       border-color: #3b2c02;
       box-shadow: 0 10px 25px rgba(212, 175, 55, 0.7), inset 0 0 15px rgba(255, 240, 150, 0.8);
       animation: goldPulse 4s ease-in-out infinite;
     }
-    .pokemon-card.leggendaria .card-inner-frame {
-      background: linear-gradient(135deg, #fff7d1 0%, #c29b27 100%);
-      border-color: #5c4303;
-    }
+    .pokemon-card.leggendaria .card-inner-frame { background: linear-gradient(135deg, #fff7d1 0%, #c29b27 100%); border-color: #5c4303; }
     .pokemon-card.leggendaria .card-description-text { color: #2e2202; }
 
     @keyframes goldPulse {
@@ -251,19 +224,8 @@
       50% { box-shadow: 0 10px 35px rgba(255, 215, 0, 0.9), inset 0 0 20px rgba(255, 255, 200, 0.9); }
     }
 
-    .sparkle-container {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; overflow: hidden; z-index: 5;
-    }
-    .sparkle {
-      position: absolute;
-      width: 3px; height: 3px;
-      background: #fff;
-      border-radius: 50%;
-      box-shadow: 0 0 6px #ffeb3b, 0 0 12px #ffc107;
-      opacity: 0;
-      animation: sparkleAnim 2.5s ease-in-out infinite;
-    }
+    .sparkle-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 5; }
+    .sparkle { position: absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; box-shadow: 0 0 6px #ffeb3b, 0 0 12px #ffc107; opacity: 0; animation: sparkleAnim 2.5s ease-in-out infinite; }
     .sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
     .sparkle:nth-child(2) { top: 75%; left: 80%; animation-delay: 0.8s; }
     .sparkle:nth-child(3) { top: 40%; left: 85%; animation-delay: 1.5s; }
@@ -274,7 +236,6 @@
       50% { transform: scale(1.4); opacity: 1; }
     }
 
-    /* Struttura interna della carta lusso */
     .card-inner-frame {
       background: linear-gradient(135deg, #e6d3b3 0%, #cfb58c 100%);
       border: 2px solid #8c6b48;
@@ -287,93 +248,25 @@
       box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
       z-index: 2;
       position: relative;
-      transition: background 0.4s ease, border-color 0.4s ease;
     }
 
     .title-container {
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      width: 78%;
-      height: 24px;
+      position: absolute; top: 6px; left: 6px; width: 78%; height: 24px;
       background: linear-gradient(to bottom, #4d3825, #2a1f15);
-      border: 2px solid #1a130d;
-      border-radius: 5px 5px 12px 5px;
+      border: 2px solid #1a130d; border-radius: 5px 5px 12px 5px;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
-      box-sizing: border-box;
-      z-index: 3;
+      display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
     }
 
-    .unown-svg-title {
-      width: 100%;
-      height: 18px;
-      filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.9));
-    }
-
-    .card-image-box {
-      position: absolute;
-      top: 34px;
-      left: 6px;
-      right: 6px;
-      height: 105px;
-      background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%);
-      border: 2px solid #5c3d29;
-      border-radius: 4px;
-      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      z-index: 2;
-    }
-
-    .card-image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: sepia(0.2) contrast(1.1);
-    }
-
-    .card-description-box {
-      position: absolute;
-      bottom: 6px;
-      left: 6px;
-      right: 6px;
-      height: 48px;
-      background: rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
-      padding: 4px 6px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-    }
-
-    .card-description-text {
-      font-family: 'Georgia', serif;
-      font-size: 5px;
-      color: #3d2817;
-      text-align: center;
-      line-height: 1.3;
-      font-style: italic;
-      transition: color 0.4s ease;
-    }
-
+    .unown-svg-title { width: 100%; height: 18px; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.9)); }
+    .card-image-box { position: absolute; top: 34px; left: 6px; right: 6px; height: 105px; background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); border: 2px solid #5c3d29; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; }
+    .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
+    .card-description-box { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 48px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 4px; padding: 4px 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 2; }
+    .card-description-text { font-family: 'Georgia', serif; font-size: 5px; color: #3d2817; text-align: center; line-height: 1.3; font-style: italic; }
     .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
 
-    .card-glow-reveal {
-      animation: cardGlowFade 1.5s ease-out forwards;
-    }
-    @keyframes cardGlowFade {
-      0% { filter: brightness(2.2); }
-      100% { filter: brightness(1); }
-    }
+    .card-glow-reveal { animation: cardGlowFade 1.5s ease-out forwards; }
+    @keyframes cardGlowFade { 0% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
 
     #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
     .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; text-transform: uppercase;}
@@ -388,13 +281,7 @@
     .btn-small { padding: 5px 7px; font-size: 6px; }
     .stat-box { font-size: 6px; line-height: 9px; text-align: left; }
 
-    .actor-sprite { 
-      position: absolute; 
-      pointer-events: none; 
-      z-index: 5; 
-      image-rendering: pixelated; 
-      object-fit: contain; 
-    }
+    .actor-sprite { position: absolute; pointer-events: none; z-index: 5; image-rendering: pixelated; object-fit: contain; }
 
     #debug-panel {
       position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #ffd700;
@@ -433,6 +320,12 @@
       </div>
 
       <div id="part2" class="screen"></div>
+
+      <!-- NUOVA SCHERMATA DI PRELOAD -->
+      <div id="part2bis" class="screen">
+        <div style="color: #ffd700; margin-bottom: 8px;">CARICAMENTO DATI...</div>
+        <div style="font-size: 6px;">Preparazione del mondo antico in corso. Attendere prego.</div>
+      </div>
 
       <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
         <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
@@ -835,13 +728,15 @@
       p2.classList.add('turning-on');
       setTimeout(() => { 
         p2.classList.remove('turning-on');
-        checkAndGoToPart3(); 
+        // MODIFICA: Invece di andare direttamente a part3, andiamo a part2bis per precaricare
+        goToPart2Bis(); 
       }, 1500);
     }
 
-    async function checkAndGoToPart3() {
-      showScreen('part3');
-      
+    // NUOVA FUNZIONE: Gestisce il precaricamento di tutti gli elementi pesanti
+    async function goToPart2Bis() {
+      showScreen('part2bis');
+
       try {
         const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
         if (error) console.error("Errore recupero user_state:", error);
@@ -849,11 +744,6 @@
       } catch(e) {
         userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
       }
-
-      document.getElementById('val-streak').innerText = userData.streak_day;
-      document.getElementById('val-months').innerText = userData.months_completed;
-      document.getElementById('val-dolls').innerText = userData.dolls_count;
-      document.getElementById('val-dust').innerText = userData.dust_count;
 
       const fileName = `cutscenes/giorno${userData.streak_day}.json`;
       try {
@@ -873,6 +763,63 @@
           events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
         };
       }
+
+      // Precaricamento delle risorse multimediali in memoria (Immagini e Audio)
+      const promises = [];
+
+      // 1. Preload Sfondo Cutscene
+      if (cutsceneData.background) {
+        const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
+        promises.push(new Promise((resolve) => {
+          const img = new Image();
+          img.src = bgUrl;
+          img.onload = resolve;
+          img.onerror = resolve; // Continua comunque in caso di errore
+        }));
+      }
+
+      // 2. Preload Musica Cutscene
+      if (cutsceneData.music) {
+        const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
+        promises.push(new Promise((resolve) => {
+          const audio = document.getElementById('gb-music');
+          audio.src = musicUrl;
+          audio.load();
+          resolve();
+        }));
+      }
+
+      // 3. Preload Sprite Attori
+      (cutsceneData.actors || []).forEach(actor => {
+        let assetUrl = userData.avatar_url;
+        if (actor.asset) {
+          assetUrl = actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
+        }
+        promises.push(new Promise((resolve) => {
+          const img = new Image();
+          img.src = assetUrl;
+          img.onload = resolve;
+          img.onerror = resolve;
+        }));
+      });
+
+      // Attendiamo che tutto sia caricato (con un timeout di sicurezza massimo di 3 secondi per evitare blocchi di rete)
+      await Promise.race([
+        Promise.all(promises),
+        new Promise(resolve => setTimeout(resolve, 3000))
+      ]);
+
+      // Fatto! Passiamo a part3 e avviamo la cutscene in modo fluido
+      checkAndGoToPart3Ready();
+    }
+
+    function checkAndGoToPart3Ready() {
+      showScreen('part3');
+
+      document.getElementById('val-streak').innerText = userData.streak_day;
+      document.getElementById('val-months').innerText = userData.months_completed;
+      document.getElementById('val-dolls').innerText = userData.dolls_count;
+      document.getElementById('val-dust').innerText = userData.dust_count;
 
       startCutscenePlayback();
     }
@@ -894,7 +841,6 @@
       }
 
       if (cutsceneData.music) {
-        audioEl.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
         audioEl.play().catch(() => {});
       } else {
         audioEl.pause();
@@ -1270,7 +1216,7 @@
       inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
 
       const tbody = document.getElementById('excel-table-body');
-      tbody.innerHTML = '';
+      tbody.innerHTML = '`';
 
       cards.forEach(card => {
         const qty = counts[card.id] || 0;
