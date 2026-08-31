@@ -274,7 +274,6 @@
       display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
     }
 
-    /* Immagine ridotta per lasciare più spazio al testo descrittivo in basso */
     .card-image-box { 
       position: absolute; top: 34px; left: 6px; right: 6px; height: 65px; 
       background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); 
@@ -284,19 +283,19 @@
     }
     .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
     
-    /* Box descrizione ingrandito, font ingrandito e scrollbar interna */
+    /* Box descrizione: centrato sia verticalmente che orizzontalmente con supporto scroll */
     .card-description-box { 
       position: absolute; bottom: 6px; left: 6px; right: 6px; top: 103px; 
       background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); 
-      border-radius: 4px; padding: 5px 6px; box-sizing: border-box; 
-      display: flex; align-items: flex-start; justify-content: flex-start; z-index: 2; 
+      border-radius: 4px; padding: 4px 6px; box-sizing: border-box; 
+      display: flex; align-items: center; justify-content: center; z-index: 2; 
       overflow-y: auto; 
     }
     .card-description-text { 
       font-family: 'Georgia', serif; 
-      font-size: 7.5px; /* Carattere aumentato in proporzione */
+      font-size: 7.5px; 
       color: #3d2817; 
-      text-align: left; 
+      text-align: center; /* Centrato orizzontalmente */
       line-height: 1.35; 
       font-style: italic; 
       width: 100%;
@@ -1097,8 +1096,8 @@
           <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
             <div class="card-inner-frame">
               <div class="title-container">
-                <!-- Applicato il font Unown personalizzato -->
-                <span style="font-size: 7px; color: #ffd700; font-family: 'UnownFont', monospace;">${card.name}</span>
+                <!-- Font Unown con fallback sicuro in stile retro/monospace -->
+                <span style="font-size: 7px; color: #ffd700; font-family: 'UnownFont', 'Press Start 2P', monospace;">${card.name}</span>
               </div>
               <div class="card-image-box">
                 <img id="card-img-${index}" src="${imageUrl}" alt="${card.name}" onerror="this.src='https://picsum.photos/200/280'">
