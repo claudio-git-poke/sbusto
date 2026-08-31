@@ -88,6 +88,7 @@
   #part1 { background: #111; color: #fff; }
   #part2 { background: #000; }
 
+  /* PART 2 BIS (Pokéball interattiva) */
   #part2bis { 
     background: #1a140f; 
     color: #f4e8c1; 
@@ -403,6 +404,7 @@
   <div id="frame-label">NINTENDO GAMEBOY — POKÉMON ARCAICO</div>
   <div id="screen-wrapper">
 
+    <!-- PART 0 -->
     <div id="part0" class="screen active">
       <div style="margin-bottom: 6px; color: #ffcc00;">CONFIGURAZIONE ALLENATORE</div>
       <label>NOME:</label>
@@ -412,12 +414,15 @@
       <button onclick="saveProfileAndGoToPart1()">REGISTRATI</button>
     </div>
 
+    <!-- PART 1 -->
     <div id="part1" class="screen">
       <button id="start-btn" onclick="startApp()">START</button>
     </div>
 
+    <!-- PART 2 -->
     <div id="part2" class="screen"></div>
 
+    <!-- PART 2 BIS (Pokéball interattiva con attesa click obbligatorio) -->
     <div id="part2bis" class="screen">
       <div id="pokeball-wrapper" class="pokeball-loader-container shaking">
         <div class="pokeball" id="main-pokeball">
@@ -429,6 +434,7 @@
       </div>
     </div>
 
+    <!-- PART 3 (Cutscene e dialoghi ripristinati) -->
     <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
       <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
       <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
@@ -446,9 +452,10 @@
       <audio id="gb-music" loop></audio>
     </div>
 
+    <!-- PART 4 (Tracciamento Fulmine / Sbustata con audio locali strappare.mp3 e swush.mp3) -->
     <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
       
-      <!-- Elementi audio locali integrati -->
+      <!-- Audio locali -->
       <audio id="audio-strappa" src="strappare.mp3" preload="auto"></audio>
       <audio id="audio-swush" src="swush.mp3" preload="auto"></audio>
 
@@ -456,7 +463,7 @@
 
       <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
         <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA (90%)!</div>
-        <div style="position: relative;">
+        <div style="position: relative;" id="booster-wrapper-box">
           <canvas id="laser-canvas"></canvas>
           <div class="booster-pack" id="booster-pack">
             <div class="booster-shine"></div>
@@ -492,6 +499,7 @@
 
     </div>
 
+    <!-- PART 5 -->
     <div id="part5" class="screen gb-screen">
       <h3 style="font-size: 8px; margin-bottom: 4px; color: #ffd700;">LOG SALVATAGGIO</h3>
       <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
@@ -499,10 +507,12 @@
       <button onclick="turnOff()">SPEGNI</button>
     </div>
 
+    <!-- PART 6 -->
     <div id="part6" class="screen" style="background: #000;">
       <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
     </div>
 
+    <!-- ALBUM SCREEN -->
     <div id="part-album" class="screen">
       <div class="excel-header">DATABASE INVENTARIO ARCAICO</div>
       <div style="font-size: 8px; margin-bottom: 6px;">
@@ -526,7 +536,6 @@
 </div>
 
 <script>
-  // Script di base per gestire le schermate e attivare gli audio integrati
   function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
@@ -536,22 +545,219 @@
     showScreen('part1');
   }
 
+  // Flusso di avvio con gestione 2bis e interazione obbligatoria
   function startApp() {
     showScreen('part2bis');
+    const loaderContainer = document.getElementById('pokeball-wrapper');
+    const preloadText = document.getElementById('preload-text');
+    const pokeball = document.getElementById('main-pokeball');
+
+    loaderContainer.classList.remove('ready');
+    loaderContainer.classList.add('shaking');
+    preloadText.innerText = "CARICAMENTO...";
+
+    // Simulazione completamento caricamento asset (es. 2 secondi)
     setTimeout(() => {
-      showScreen('part4'); // Esempio diretto alla parte 4 o parte 3 in base al tuo flusso
-    }, 1500);
+      loaderContainer.classList.remove('shaking');
+      loaderContainer.classList.add('ready');
+      preloadText.innerText = "PRONTO! CLICCA LA POKÉBALL";
+
+      // Click obbligatorio utente per procedere alla cutscene/parte 3
+      loaderContainer.onclick = function() {
+        loaderContainer.onclick = null; // Disattiva doppi click
+        pokeball.classList.add('opening');
+        preloadText.innerText = "ACCENSIONE...";
+        
+        setTimeout(() => {
+          pokeball.classList.remove('opening');
+          showScreen('part3'); // Passaggio alla Parte 3 ripristinata
+          initCutscene();
+        }, 600);
+      };
+    }, 2000);
   }
 
-  // Esempio di utilizzo dei nuovi file audio all'interno di Parte 4
-  function playStrappaSound() {
-    const audio = document.getElementById('audio-strappa');
-    if (audio) { audio.currentTime = 0; audio.play().catch(e => console.log(e)); }
+  // Logica Parte 3 (Cutscene)
+  function initCutscene() {
+    const dialogueBox = document.getElementById('dialogue-box');
+    const speakerName = document.getElementById('speaker-name');
+    const dialogueText = document.getElementById('dialogue-text');
+    dialogueBox.style.display = 'block';
+    speakerName.innerText = "PROFESSORE";
+    dialogueText.innerText = "Benvenuto nel mondo dei Pokémon Arcaici! Tocca lo schermo per continuare...";
   }
 
-  function playSwushSound() {
-    const audio = document.getElementById('audio-swush');
-    if (audio) { audio.currentTime = 0; audio.play().catch(e => console.log(e)); }
+  function handleCutsceneClick() {
+    // Avanza o passa direttamente alla Parte 4 (Sbustata) se la cutscene è finita
+    initLaserBooster();
+    showScreen('part4');
+  }
+
+  // Inizializzazione della Parte 4 con tracciamento fulmine canvas
+  function initLaserBooster() {
+    const canvas = document.getElementById('laser-canvas');
+    const boosterPack = document.getElementById('booster-pack');
+    const boosterWrapperBox = document.getElementById('booster-wrapper-box');
+    
+    canvas.width = boosterWrapperBox.offsetWidth || 130;
+    canvas.height = boosterWrapperBox.offsetHeight || 185;
+    const ctx = canvas.getContext('2d');
+
+    let isDrawing = false;
+    let points = [];
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startDraw(e) {
+      isDrawing = true;
+      points = [getPos(e)];
+    }
+
+    function moveDraw(e) {
+      if (!isDrawing) return;
+      const pos = getPos(e);
+      points.push(pos);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00ffff';
+
+      for (let i = 0; i < points.length; i++) {
+        if (i === 0) ctx.moveTo(points[i].x, points[i].y);
+        else ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+
+      // Condizione di completamento tracciamento (es. almeno 10 punti)
+      if (points.length > 12) {
+        isDrawing = false;
+        triggerPackRip();
+      }
+    }
+
+    function endDraw() {
+      if (isDrawing) {
+        isDrawing = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = moveDraw;
+    canvas.onmouseup = endDraw;
+
+    canvas.ontouchstart = startDraw;
+    canvas.ontouchmove = moveDraw;
+    canvas.ontouchend = endDraw;
+  }
+
+  // Trigger apertura bustina con audio locale strappare.mp3
+  function triggerPackRip() {
+    const audioStrappa = document.getElementById('audio-strappa');
+    if (audioStrappa) {
+      audioStrappa.currentTime = 0;
+      audioStrappa.play().catch(e => console.log("Audio strappo non avviato:", e));
+    }
+
+    const boosterPack = document.getElementById('booster-pack');
+    boosterPack.classList.add('sliced-open');
+
+    setTimeout(() => {
+      document.getElementById('booster-container').style.display = 'none';
+      document.getElementById('cards-area').style.display = 'flex';
+      initCardsSwipe();
+    }, 800);
+  }
+
+  // Gestione swipe carte con audio locale swush.mp3
+  function initCardsSwipe() {
+    const stack = document.getElementById('cards-stack');
+    stack.innerHTML = `
+      <div class="card-wrapper" id="current-card-wrapper">
+        <div class="pokemon-card rara">
+          <div class="card-inner-frame">
+            <div class="card-image-box"><img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" alt="Card"></div>
+            <div class="card-description-box"><div class="card-description-text">Una carta misteriosa emana un potere antico...</div></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const wrapper = document.getElementById('current-card-wrapper');
+    let startY = 0;
+    let currentY = 0;
+    let dragging = false;
+
+    function onStart(e) {
+      dragging = true;
+      startY = e.clientY || (e.touches && e.touches[0].clientY);
+      wrapper.classList.add('dragging');
+    }
+
+    function onMove(e) {
+      if (!dragging) return;
+      currentY = (e.clientY || (e.touches && e.touches[0].clientY)) - startY;
+      if (currentY < 0) {
+        wrapper.style.transform = `translateY(${currentY}px) rotate(${currentY / 15}deg)`;
+      }
+    }
+
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      wrapper.classList.remove('dragging');
+
+      if (currentY < -80) {
+        // Swipe valido verso l'alto
+        const audioSwush = document.getElementById('audio-swush');
+        if (audioSwush) {
+          audioSwush.currentTime = 0;
+          audioSwush.play().catch(e => console.log("Audio swush non avviato:", e));
+        }
+        wrapper.classList.add('card-swiped');
+        setTimeout(() => {
+          showSummary();
+        }, 500);
+      } else {
+        wrapper.classList.add('snap-back');
+        wrapper.style.transform = 'translateY(0px) rotate(0deg)';
+        setTimeout(() => wrapper.classList.remove('snap-back'), 300);
+      }
+      currentY = 0;
+    }
+
+    wrapper.onmousedown = onStart;
+    window.onmousemove = onMove;
+    window.onmouseup = onEnd;
+
+    wrapper.ontouchstart = onStart;
+    window.ontouchmove = onMove;
+    window.ontouchend = onEnd;
+  }
+
+  function showSummary() {
+    document.getElementById('cards-area').style.display = 'none';
+    document.getElementById('part4-summary').style.display = 'block';
+    const tbody = document.getElementById('part4-summary-body');
+    tbody.innerHTML = `<tr><td>Mewtwo Arcaico</td><td>Rara</td><td>1</td><td>Nuovo!</td></tr>`;
+  }
+
+  function finalizePackAndGoToPart5() {
+    document.getElementById('part4-summary').style.display = 'none';
+    showScreen('part5');
+    document.getElementById('summary-content').innerText = "Hai completato la sbustata con successo!";
+  }
+
+  function openAlbum() {
+    showScreen('part-album');
   }
 
   function turnOff() {
