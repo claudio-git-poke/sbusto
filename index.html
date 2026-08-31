@@ -465,7 +465,6 @@
       } catch(e) {}
     }
 
-    // SCARICA E SCEGLIE UNA FRASA CASUALE (USANDO LA DATA ODIERNA COME SEED)
     async function getRandomQuoteFromBucket() {
       const fallbackQuotes = [
         "Catturando Snorlax...",
@@ -987,12 +986,12 @@
         allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', file_name: 'tavoletta-antica' }];
       }
 
-      // Mappatura delle rarità alle rispettive cartelle nei bucket Supabase
+      // Mappatura aggiornata esattamente ai nomi delle tue cartelle su Supabase Storage
       const rarityFolders = {
         'Comune': 'comuni',
-        'Non Comune': 'non comuni',
+        'Non Comune': 'non%20comuni',
         'Rara': 'rare',
-        'Ultrarara': 'ultrarare',
+        'Ultrarara': 'ultra%20rare',
         'Leggendaria': 'leggendarie'
       };
 
@@ -1022,7 +1021,6 @@
         drawnCards.push({ ...randomCard, isDuplicate });
       }
 
-      // Renderizzazione e caricamento asincrono di immagini e testi dai bucket dedicati
       drawnCards.forEach(async (card, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'card-wrapper';
@@ -1031,11 +1029,9 @@
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultrarara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
 
-        // Definiamo il nome file di base (es. se nel db salvi file_name o usi lo slug del nome)
         const baseFileName = card.file_name || card.name.toLowerCase().replace(/\s+/g, '-');
         const folderName = rarityFolders[card.rarity] || 'comuni';
 
-        // Costruiamo gli URL pubblici dai bucket cards-images e cards-texts
         const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${folderName}/${baseFileName}.png`;
         const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${folderName}/${baseFileName}.txt`;
 
@@ -1057,7 +1053,6 @@
         `;
         container.appendChild(wrapper);
 
-        // Fetch asincrona del file di testo descrittivo dal bucket cards-texts
         try {
           const res = await fetch(textUrl);
           if (res.ok) {
@@ -1067,9 +1062,7 @@
               descEl.innerText = `"${descText.trim()}"`;
             }
           }
-        } catch (err) {
-          // Fallback silenzioso se il file txt non viene trovato o c'è un errore di rete
-        }
+        } catch (err) {}
       });
     }
 
