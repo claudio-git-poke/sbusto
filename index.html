@@ -904,10 +904,9 @@
         audioEl.play().catch(() => {});
       }
 
-      const stage = document.getElementById('screen-wrapper');
-      const baseWidth = 480, baseHeight = 270;
-      const currentWidth = stage.clientWidth || 480, currentHeight = stage.clientHeight || 270;
-      const scaleX = currentWidth / baseWidth, scaleY = currentHeight / baseHeight;
+      // Risoluzione nativa di riferimento dell'editor
+      const baseWidth = 480;
+      const baseHeight = 270;
 
       const actorElements = {};
       const actorCurrentPos = {};
@@ -922,13 +921,27 @@
         const startY = actor.pos ? actor.pos[1] : 100;
         actorCurrentPos[actor.id] = { x: startX, y: startY };
 
-        img.style.left = `${startX * scaleX}px`;
-        img.style.top = `${startY * scaleY}px`;
-        img.style.width = `${48 * scaleX}px`;
-        img.style.height = `${48 * scaleY}px`;
+        // Posizionamento e dimensioni basati in percentuale rispetto alla risoluzione nativa 480x270
+        img.style.left = `${(startX / baseWidth) * 100}%`;
+        img.style.top = `${(startY / baseHeight) * 100}%`;
+        img.style.width = `${(48 / baseWidth) * 100}%`;
+        img.style.height = `${(48 / baseHeight) * 100}%`;
         spritesLayer.appendChild(img);
         actorElements[actor.id] = img;
       });
+
+      // Calcolo dinamico della durata basato sull'ultimo evento (con fallback a 10.0s se non specificato)
+      let maxEventEnd = 10.0;
+      if (cutsceneData && typeof cutsceneData.duration === 'number' && !isNaN(cutsceneData.duration)) {
+        maxEventEnd = cutsceneData.duration;
+      } else if (cutsceneData && Array.isArray(cutsceneData.events) && cutsceneData.events.length > 0) {
+        cutsceneData.events.forEach(ev => {
+          const evEnd = (ev.start || 0) + (ev.duration || 0);
+          if (evEnd > maxEventEnd) {
+            maxEventEnd = evEnd;
+          }
+        });
+      }
 
       if (cutsceneTimer) clearInterval(cutsceneTimer);
 
@@ -953,8 +966,8 @@
                 
                 const el = actorElements[targetActorKey];
                 if (el) {
-                  el.style.left = `${currentX * scaleX}px`;
-                  el.style.top = `${currentY * scaleY}px`;
+                  el.style.left = `${(currentX / baseWidth) * 100}%`;
+                  el.style.top = `${(currentY / baseHeight) * 100}%`;
                 }
               }
             }
@@ -972,7 +985,7 @@
         });
 
         cutsceneTime += 0.05;
-        if (cutsceneTime >= 10.0) {
+        if (cutsceneTime >= maxEventEnd) {
           clearInterval(cutsceneTimer);
           document.getElementById('gb-music').pause();
           goToPart4();
@@ -1221,7 +1234,6 @@
         if(iData) inventory = iData;
       } catch(e) {}
 
-      // Mappa per contare le quantità per ciascun card_id
       const counts = {};
       inventory.forEach(i => {
         if (i.card_id) {
@@ -1232,7 +1244,6 @@
       const tbody = document.getElementById('excel-table-body');
       tbody.innerHTML = '';
 
-      // Mappa delle rarità in base al prefisso dell'ID salvato (es. 'comuni_anello3')
       const rarityMap = {
         'comuni': 'Comune',
         'non': 'Non Comune',
@@ -1241,7 +1252,6 @@
         'leggendarie': 'Leggendaria'
       };
 
-      // Se l'inventario è vuoto
       const uniqueCardIds = Object.keys(counts);
       if (uniqueCardIds.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:10px;">Nessuna carta nell'inventario</td></tr>`;
@@ -1250,7 +1260,6 @@
 
       uniqueCardIds.forEach(cardId => {
         const qty = counts[cardId];
-        // Estrae il prefisso e il nome leggibile dal card_id (es. "comuni_anello3" -> folder="comuni", file="anello3")
         const parts = cardId.split('_');
         const folder = parts[0];
         const rawName = parts.slice(1).join(' ') || cardId;
