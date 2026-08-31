@@ -72,8 +72,17 @@
     #part1 { background: #111; color: #fff; }
     #part2 { background: #000; }
     
-    /* --- STILI POKÉBALL PRELOAD & APERTURA --- */
-    #part2bis { background: #1a140f; color: #f4e8c1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+    /* --- SCHERMATA PART 2 BIS (PRELOAD POKÉBALL INTERATTIVA) --- */
+    #part2bis { 
+      background: #1a140f; 
+      color: #f4e8c1; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      position: relative; 
+      font-size: 6px;
+    }
     
     .pokeball-loader-container {
       display: flex;
@@ -86,14 +95,33 @@
     
     .pokeball-loader-container.ready {
       cursor: pointer;
+    }
+
+    /* Animazione di oscillazione della Pokéball (stile cattura) */
+    .pokeball-loader-container:not(.ready) .pokeball {
+      animation: wobblePokeball 1.2s infinite ease-in-out;
+    }
+
+    @keyframes wobblePokeball {
+      0% { transform: rotate(0deg); }
+      15% { transform: rotate(-15deg); }
+      30% { transform: rotate(15deg); }
+      45% { transform: rotate(-10deg); }
+      60% { transform: rotate(10deg); }
+      75% { transform: rotate(0deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .pokeball-loader-container.ready .pokeball {
       animation: bouncePokeball 1s infinite alternate ease-in-out;
     }
 
     @keyframes bouncePokeball {
       0% { transform: translateY(0) scale(1); }
-      100% { transform: translateY(-8px) scale(1.05); }
+      100% { transform: translateY(-6px) scale(1.04); }
     }
 
+    /* Disegno Pokéball in CSS a schermo intero nella part2bis */
     .pokeball {
       width: 70px;
       height: 70px;
@@ -103,6 +131,7 @@
       position: relative;
       box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
       transition: filter 0.3s ease;
+      transform-origin: bottom center;
     }
 
     .pokeball-loader-container.ready .pokeball {
@@ -133,8 +162,9 @@
       border-radius: 50%;
     }
 
+    /* Effetto apertura/flash della Pokéball al click */
     .pokeball.opening {
-      animation: openPokeballAnim 0.6s forwards ease-in-out;
+      animation: openPokeballAnim 0.6s forwards ease-in-out !important;
     }
     @keyframes openPokeballAnim {
       0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
@@ -406,7 +436,7 @@
               <div class="pokeball-center-inner"></div>
             </div>
           </div>
-          <div id="preload-text">CARICAMENTO...</div>
+          <div id="preload-text">CARICAMENTO DATI...</div>
         </div>
       </div>
 
@@ -786,7 +816,7 @@
     let cutsceneTime = 0;
     let isDialogueActive = false;
     let triggeredEvents = new Set();
-    let isResourcesLoaded = false;
+    let isResourcesLoaded = false; // Stato per verificare caricamento e attesa minima di 2s
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -816,6 +846,7 @@
       }, 1500);
     }
 
+    // GESTIONE PRELOAD + TIMER MINIMO DI 2 SECONDI + CLICLABILITÀ POKÉBALL
     async function goToPart2Bis() {
       showScreen('part2bis');
       isResourcesLoaded = false;
@@ -825,89 +856,100 @@
       textEl.innerText = "CARICAMENTO DATI...";
       wrapperEl.classList.remove('ready');
 
-      try {
-        const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
-        if (error) console.error("Errore recupero user_state:", error);
-        userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
-      } catch(e) {
-        userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
-      }
+      // Avviamo in parallelo il caricamento dati/risorse e il timer minimo di 2 secondi
+      const minTimerPromise = new Promise(resolve => setTimeout(resolve, 2000));
 
-      const fileName = `cutscenes/giorno${userData.streak_day}.json`;
-      try {
-        const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
-        const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-        if (response.ok) cutsceneData = await response.json();
-        else cutsceneData = null;
-      } catch(e) {
-        cutsceneData = null;
-      }
-
-      if (!cutsceneData) {
-        cutsceneData = {
-          background: '',
-          music: '',
-          actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-          events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
-        };
-      }
-
-      const promises = [];
-
-      if (cutsceneData.background) {
-        const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
-        promises.push(new Promise((resolve) => {
-          const img = new Image();
-          img.src = bgUrl;
-          img.onload = resolve;
-          img.onerror = resolve;
-        }));
-      }
-
-      if (cutsceneData.music) {
-        const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
-        promises.push(new Promise((resolve) => {
-          const audio = document.getElementById('gb-music');
-          audio.src = musicUrl;
-          audio.load();
-          resolve();
-        }));
-      }
-
-      (cutsceneData.actors || []).forEach(actor => {
-        let assetUrl = userData.avatar_url;
-        if (actor.asset) {
-          assetUrl = actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
+      const loadTask = (async () => {
+        try {
+          const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+          if (error) console.error("Errore recupero user_state:", error);
+          userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
+        } catch(e) {
+          userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
         }
-        promises.push(new Promise((resolve) => {
-          const img = new Image();
-          img.src = assetUrl;
-          img.onload = resolve;
-          img.onerror = resolve;
-        }));
-      });
 
-      await Promise.race([
-        Promise.all(promises),
-        new Promise(resolve => setTimeout(resolve, 3000))
-      ]);
+        const fileName = `cutscenes/giorno${userData.streak_day}.json`;
+        try {
+          const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
+          const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
+          if (response.ok) cutsceneData = await response.json();
+          else cutsceneData = null;
+        } catch(e) {
+          cutsceneData = null;
+        }
 
+        if (!cutsceneData) {
+          cutsceneData = {
+            background: '',
+            music: '',
+            actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
+            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
+          };
+        }
+
+        const promises = [];
+
+        if (cutsceneData.background) {
+          const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
+          promises.push(new Promise((resolve) => {
+            const img = new Image();
+            img.src = bgUrl;
+            img.onload = resolve;
+            img.onerror = resolve;
+          }));
+        }
+
+        if (cutsceneData.music) {
+          const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
+          promises.push(new Promise((resolve) => {
+            const audio = document.getElementById('gb-music');
+            audio.src = musicUrl;
+            audio.load();
+            resolve();
+          }));
+        }
+
+        (cutsceneData.actors || []).forEach(actor => {
+          let assetUrl = userData.avatar_url;
+          if (actor.asset) {
+            assetUrl = actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
+          }
+          promises.push(new Promise((resolve) => {
+            const img = new Image();
+            img.src = assetUrl;
+            img.onload = resolve;
+            img.onerror = resolve;
+          }));
+        });
+
+        await Promise.race([
+          Promise.all(promises),
+          new Promise(resolve => setTimeout(resolve, 3000))
+        ]);
+      })();
+
+      // Aspettiamo sia il caricamento completo che siano passati almeno i 2 secondi richiesti
+      await Promise.all([loadTask, minTimerPromise]);
+
+      // --- RISORSE PRONTE & TIMER DI 2s SCADUTO ---
       isResourcesLoaded = true;
       textEl.innerText = "TOCCA LA POKÉBALL!";
       wrapperEl.classList.add('ready');
     }
 
+    // Gestore del click sulla Pokéball nella part2bis
     document.getElementById('pokeball-wrapper').addEventListener('click', () => {
-      if (!isResourcesLoaded) return;
+      if (!isResourcesLoaded) return; // Non fa nulla se sta ancora caricando o non sono passati i 2s
       
-      isResourcesLoaded = false;
-      playHighVolumeSound('laser');
+      isResourcesLoaded = false; // Evita doppi click
+      playHighVolumeSound('laser'); // Suono di attivazione / apertura
       
       const pokeballEl = document.getElementById('main-pokeball');
       const textEl = document.getElementById('preload-text');
       textEl.innerText = "";
       pokeballEl.classList.add('opening');
 
+      // Transizione fluida alla part3 dopo l'animazione di apertura
       setTimeout(() => {
         pokeballEl.classList.remove('opening');
         checkAndGoToPart3Ready();
