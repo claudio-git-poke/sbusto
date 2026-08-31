@@ -894,6 +894,7 @@
         const promises = [];
 
         if (cutsceneData.background) {
+          // CORRETTO: Uso del bucket 'assets' e percorso corretto cartella background
           const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
           promises.push(new Promise((resolveImg) => {
             const img = new Image();
@@ -904,6 +905,7 @@
         }
 
         if (cutsceneData.music) {
+          // CORRETTO: Uso del bucket 'assets' e percorso corretto cartella music
           const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
           promises.push(new Promise((resolveAudio) => {
             const audio = document.getElementById('gb-music');
@@ -916,6 +918,7 @@
         (cutsceneData.actors || []).forEach(actor => {
           let assetUrl = userData.avatar_url;
           if (actor.asset) {
+            // CORRETTO: Uso del bucket 'assets' e percorso corretto cartella sprite
             assetUrl = actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
           }
           promises.push(new Promise((resolveActor) => {
@@ -979,6 +982,7 @@
       isDialogueActive = false;
 
       if (cutsceneData.background) {
+        // CORRETTO: Sfondo agganciato al bucket 'assets'
         bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
       } else {
         bgEl.style.backgroundImage = 'none';
@@ -1011,6 +1015,7 @@
           if (actor.asset.startsWith('http')) {
             assetUrl = actor.asset;
           } else {
+            // CORRETTO: Sprite agganciato al bucket 'assets'
             assetUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
           }
         }
