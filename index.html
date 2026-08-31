@@ -1,56 +1,1143 @@
-﻿[ TEST PANEL F12 ]
-Test Connessione Supabase Forza Leggendaria Reset Filtro
-[ POKEMON CARD SYNC - ANCIENT ERA ]
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameBoy Streak - Ancient Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { 
+      background: #111; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh; 
+      font-family: 'Press Start 2P', monospace;
+      padding: 10px;
+    }
 
+    #gameboy-frame {
+      width: 100%;
+      max-width: 640px;
+      height: 92vh;
+      max-height: 400px;
+      background: #8b0000;
+      border: 6px solid #1a1a1a;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 12px;
+    }
 
-CONFIGURAZIONE ALLENATORE
-NOME: AVATAR (URL PNG): REGISTRATI
-START
+    @media (max-aspect-ratio: 1/1) {
+      #gameboy-frame { max-height: 80vh; }
+    }
+    
+    #frame-label {
+      position: absolute;
+      top: 6px;
+      color: #ffcc00;
+      font-size: 7px;
+      letter-spacing: 1px;
+      text-align: center;
+      text-shadow: 1px 1px #000;
+    }
 
+    #screen-wrapper {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border: 4px solid #111;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
+    .screen { 
+      width: 100%; 
+      height: 100%; 
+      display: none; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      text-align: center; 
+      padding: 12px; 
+      box-sizing: border-box; 
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .screen.active { display: flex; }
 
+    #part0 { background: #1a1a1a; color: #fff; font-size: 8px; }
+    #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 4px 0 8px 0; width: 80%; border: 2px solid #ffcc00; background: #000; color: #ffcc00; }
 
-CARICAMENTO...
+    #part1 { background: #111; color: #fff; }
+    #part2 { background: #000; }
+    
+    #part2bis { 
+      background: #1a140f; 
+      color: #f4e8c1; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    .pokeball-loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      cursor: default;
+      transition: transform 0.3s ease;
+    }
+    
+    .pokeball-loader-container.ready { cursor: pointer; }
+    .pokeball-loader-container.shaking .pokeball { animation: pokeballWobble 0.8s infinite ease-in-out; }
 
+    @keyframes pokeballWobble {
+      0% { transform: rotate(0deg); }
+      15% { transform: rotate(-15deg); }
+      30% { transform: rotate(12deg); }
+      45% { transform: rotate(-10deg); }
+      60% { transform: rotate(6deg); }
+      75% { transform: rotate(0deg); }
+      100% { transform: rotate(0deg); }
+    }
 
+    .pokeball {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(to bottom, #ff3b3b 0%, #ff3b3b 48%, #222 48%, #222 52%, #fff 52%, #fff 100%);
+      border: 4px solid #111;
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
+      transition: filter 0.3s ease;
+    }
 
+    .pokeball-loader-container.ready .pokeball {
+      filter: drop-shadow(0 0 12px #ffd700);
+      animation: bounceReady 1s infinite alternate ease-in-out;
+    }
 
-STREAK: 1 GG | MESI: 0
-BAMBOLE: 0/3 | POLVERE: 0
+    @keyframes bounceReady {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(-5px) scale(1.05); }
+    }
 
+    .pokeball-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px; height: 18px;
+      background: #fff;
+      border: 4px solid #222;
+      border-radius: 50%;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+    }
 
-[CLICK PER AVANZARE]
+    .pokeball-center-inner {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px; height: 6px;
+      background: #ff3b3b;
+      border-radius: 50%;
+    }
 
+    .pokeball.opening { animation: openPokeballAnim 0.6s forwards ease-in-out; }
+    @keyframes openPokeballAnim {
+      0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+      40% { transform: scale(1.3) rotate(-10deg); filter: brightness(3); }
+      70% { transform: scale(1.5) rotate(10deg); filter: brightness(5); background: #fff; }
+      100% { transform: scale(3); opacity: 0; filter: brightness(10); }
+    }
 
+    #preload-text {
+      font-size: 6px;
+      letter-spacing: 1px;
+      text-align: center;
+      color: #ffd700;
+      text-shadow: 1px 1px #000;
+      min-height: 15px;
+    }
 
+    .turning-on { animation: turnOn 1.5s forwards; }
+    @keyframes turnOn {
+      0% { background: #000; opacity: 0; }
+      50% { background: #554422; opacity: 0.5; }
+      100% { background: #332211; opacity: 1; }
+    }
 
-TRACCIA IL FULMINE SULLA BUSTA (90%)!
+    .gb-screen { background: #2c221e; color: #f4e8c1; }
 
+    #booster-container { perspective: 1000px; position: relative; }
+    .booster-pack {
+      width: 130px; height: 185px; 
+      background: linear-gradient(135deg, #222 0%, #444 30%, #b8860b 50%, #111 80%, #000 100%);
+      border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: crosshair; display: flex;
+      flex-direction: column; box-shadow: 0 12px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.6); 
+      overflow: hidden; touch-action: none;
+    }
+    .booster-shine {
+      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
+      pointer-events: none; border-radius: 10px; animation: shineMove 3s infinite linear;
+    }
+    @keyframes shineMove {
+      0% { transform: translateX(-60%) translateY(-60%) rotate(25deg); }
+      100% { transform: translateX(60%) translateY(60%) rotate(25deg); }
+    }
+    .booster-top {
+      height: 30px; background: linear-gradient(90deg, #555, #888, #555); border-bottom: 2px dashed #ffd700; display: flex;
+      align-items: center; justify-content: center; font-size: 5px; color: #ffd700; font-weight: bold;
+      border-radius: 7px 7px 0 0; text-shadow: 1px 1px #000;
+    }
+    .booster-bottom {
+      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 8px;
+      font-weight: bold; color: #ffd700; flex-direction: column; gap: 8px;
+    }
+    .booster-logo { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700); }
 
-⚡ PLASMA
-________________
+    #laser-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+    .booster-pack.sliced-open { animation: packOpenAnim 0.8s ease-out forwards; }
+    @keyframes packOpenAnim {
+      0% { transform: scale(1); filter: brightness(2); }
+      50% { transform: scale(1.1) rotate(5deg); filter: brightness(3) drop-shadow(0 0 20px #00ffff); }
+      100% { transform: translateY(180px) scale(0.6) rotate(25deg); opacity: 0; }
+    }
 
-ANCIENT PACK
+    #sparkles-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; z-index: 20; }
+    .firefly {
+      position: absolute; width: 4px; height: 4px; background: #ffff88; border-radius: 50%;
+      box-shadow: 0 0 8px #ffcc00, 0 0 15px #ffff00;
+      animation: floatFirefly 2.5s infinite ease-in-out;
+    }
+    @keyframes floatFirefly {
+      0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+      30% { opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
+    }
 
+    .card-container { position: relative; width: 155px; height: 215px; margin-top: 2px; z-index: 5; }
+    .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: center; }
+    .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
+    .card-wrapper.snap-back { transition: transform 0.3s ease; }
+    .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
+    
+    .pokemon-card {
+      width: 155px; height: 215px;
+      background: radial-gradient(circle at center, rgba(245, 230, 205, 0.9) 0%, rgba(196, 164, 124, 0.95) 100%);
+      border-radius: 10px; border: 6px solid #5c3d29; 
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(70, 45, 25, 0.7);
+      display: flex; flex-direction: column; padding: 6px; box-sizing: border-box;
+      position: relative; overflow: hidden; pointer-events: none;
+    }
 
-SOLLEVA VERSO L'ALTO (SWIPE UP)
+    .card-inner-frame {
+      background: linear-gradient(135deg, #e6d3b3 0%, #cfb58c 100%);
+      border: 2px solid #8c6b48; border-radius: 6px; flex: 1;
+      display: flex; flex-direction: column; padding: 6px; box-sizing: border-box;
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4); z-index: 2; position: relative;
+    }
 
+    .title-container {
+      position: absolute; top: 6px; left: 6px; width: 78%; height: 24px;
+      background: linear-gradient(to bottom, #4d3825, #2a1f15);
+      border: 2px solid #1a130d; border-radius: 5px 5px 12px 5px;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
+    }
 
-RIEPILOGO SBUSTATA ARCAICA
-Nome
-	Rarità
-	Qtà
-	Note
-	CONTINUA AL LOG
-LOG SALVATAGGIO
-VEDI ALBUM SPEGNI
-FINE
+    .card-image-box { position: absolute; top: 34px; left: 6px; right: 6px; height: 105px; background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); border: 2px solid #5c3d29; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; }
+    .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
+    .card-description-box { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 48px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 4px; padding: 4px 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 2; }
+    .card-description-text { font-family: 'Georgia', serif; font-size: 5px; color: #3d2817; text-align: center; line-height: 1.3; font-style: italic; }
+    .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
 
+    .card-glow-reveal { animation: cardGlowFade 1.5s ease-out forwards; }
+    @keyframes cardGlowFade { 0% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
 
-DATABASE INVENTARIO ARCAICO
-Polvere: 0
-ID
-	Nome
-	Rarità
-	Qtà
-	TORNA AL LOG
+    button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #3d2616; color: #ffcc00; border: 3px solid #ffd700; box-shadow: 2px 2px 0px #111; margin-top: 6px; }
+    button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #111; }
+    .btn-small { padding: 5px 7px; font-size: 6px; }
+    .stat-box { font-size: 6px; line-height: 9px; text-align: left; }
+
+    .actor-sprite { position: absolute; pointer-events: none; z-index: 5; image-rendering: pixelated; object-fit: contain; }
+
+    #debug-panel {
+      position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #ffd700;
+      padding: 6px; border-radius: 6px; z-index: 99999; display: flex; flex-direction: column; gap: 4px;
+    }
+    #debug-panel button { font-size: 5px; padding: 4px 6px; margin: 0; background: #222; color: #00ffcc; border-color: #00ffcc; }
+  </style>
+</head>
+<body>
+
+  <div id="debug-panel">
+    <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL F12 ]</div>
+    <button onclick="testSupabaseConnection()">Test Connessione Supabase</button>
+    <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria!');">Forza Leggendaria</button>
+    <button onclick="forcedRarity = null; alert('Filtro rimosso.');">Reset Filtro</button>
+  </div>
+
+  <div id="gameboy-frame">
+    <div id="frame-label">[ POKEMON CARD SYNC - ANCIENT ERA ]</div>
+
+    <div id="screen-wrapper">
+
+      <div id="part0" class="screen active">
+        <div style="margin-bottom: 6px; color: #ffcc00;">CONFIGURAZIONE ALLENATORE</div>
+        <label>NOME:</label>
+        <input type="text" id="login-username" value="Rosso">
+        <label>AVATAR (URL PNG):</label>
+        <input type="text" id="login-avatar" value="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico">
+        <button onclick="saveProfileAndGoToPart1()">REGISTRATI</button>
+      </div>
+
+      <div id="part1" class="screen">
+        <button id="start-btn" onclick="startApp()">START</button>
+      </div>
+
+      <div id="part2" class="screen"></div>
+
+      <div id="part2bis" class="screen">
+        <div id="pokeball-wrapper" class="pokeball-loader-container shaking">
+          <div class="pokeball" id="main-pokeball">
+            <div class="pokeball-center">
+              <div class="pokeball-center-inner"></div>
+            </div>
+          </div>
+          <div id="preload-text">CARICAMENTO...</div>
+        </div>
+      </div>
+
+      <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
+        <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
+        <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
+
+        <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 10; background: rgba(44, 34, 30, 0.9); padding: 4px; border-radius: 4px; border: 1px solid #ffd700;">
+          <div>STREAK: <span id="val-streak">1</span> GG | MESI: <span id="val-months">0</span></div>
+          <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
+        </div>
+
+        <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 45px; background: #3b2219; border: 3px solid #ffd700; padding: 6px; z-index: 10; text-align: left; display: none;">
+          <div id="speaker-name" style="font-size: 7px; color: #ffd700; font-weight: bold; margin-bottom: 3px; text-transform: uppercase;"></div>
+          <div id="dialogue-text" style="font-size: 6px; line-height: 9px; color: #f4e8c1;"></div>
+          <div style="font-size: 5px; color: #ffd700; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
+        </div>
+        <audio id="gb-music" loop></audio>
+      </div>
+
+      <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
+        <div id="sparkles-container"></div>
+
+        <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
+          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA (90%)!</div>
+          <div style="position: relative;">
+            <canvas id="laser-canvas"></canvas>
+            <div class="booster-pack" id="booster-pack">
+              <div class="booster-shine"></div>
+              <div class="booster-top">⚡ PLASMA</div>
+              <div class="booster-bottom">
+                <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
+                <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
+          <div style="font-size: 5px; margin-bottom: 4px; color: #ffd700;">SOLLEVA VERSO L'ALTO (SWIPE UP)</div>
+          <div class="card-container" id="cards-stack"></div>
+        </div>
+
+        <div id="part4-summary" style="display: none; background: #2c221e; color: #f4e8c1; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto; z-index: 10; border: 2px solid #ffd700;">
+          <div style="text-align: center; background: #3b2219; color: #ffd700; font-size: 8px; padding: 4px; margin-bottom: 6px;">RIEPILOGO SBUSTATA ARCAICA</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 7px; color: #000; background: #f4e8c1;">
+            <thead><tr style="background: #e6e6e6;"><th>Nome</th><th>Rarità</th><th>Qtà</th><th>Note</th></tr></thead>
+            <tbody id="part4-summary-body"></tbody>
+          </table>
+          <button onclick="finalizePackAndGoToPart5()" style="background: #8b0000; color: #ffd700; width: 100%; margin-top: 10px;">CONTINUA AL LOG</button>
+        </div>
+      </div>
+
+      <div id="part5" class="screen gb-screen">
+        <h3 style="font-size: 8px; margin-bottom: 4px; color: #ffd700;">LOG SALVATAGGIO</h3>
+        <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
+        <button onclick="openAlbum()" class="btn-small" style="background: #3d2616; color: #ffd700; margin-top: 8px;">VEDI ALBUM</button>
+        <button onclick="turnOff()">SPEGNI</button>
+      </div>
+
+      <div id="part6" class="screen" style="background: #000;">
+        <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
+      </div>
+
+      <div id="part-album" class="screen" style="background: #fff; color: #000; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto;">
+        <div style="font-size: 9px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px;">DATABASE INVENTARIO ARCAICO</div>
+        <div style="font-size: 8px; margin-bottom: 6px;"><b>Polvere:</b> <span id="excel-dust">0</span></div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 7px;">
+          <thead><tr style="background: #e6e6e6;"><th>ID</th><th>Nome</th><th>Rarità</th><th>Qtà</th></tr></thead>
+          <tbody id="excel-table-body"></tbody>
+        </table>
+        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #3d2616; color: #ffd700;">TORNA AL LOG</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://tssgkiytaxmcrodrcrpu.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_3JHORvzXFoBh7XVVuSqgTg__ezQdQMa';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const STORAGE_AUDIO_URL = `${SUPABASE_URL}/storage/v1/object/public/soundfx`;
+    const externalSoundEffects = {
+      strappare: `${STORAGE_AUDIO_URL}/strappare.mp3`,
+      swush: `${STORAGE_AUDIO_URL}/swush.mp3`
+    };
+
+    let forcedRarity = null;
+    let audioCtx = null;
+    
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    async function testSupabaseConnection() {
+      try {
+        const { data, error } = await _supabase.from('user_state').select('*').limit(1);
+        if (error) alert("Errore Supabase! Controlla la console F12.");
+        else alert("Connessione a Supabase OK!");
+      } catch (err) {
+        alert("Eccezione di rete. Guarda la console F12.");
+      }
+    }
+
+    function playHighVolumeSound(type) {
+      initAudio();
+
+      if (type === 'laser' || type === 'swipe') {
+        const soundKey = type === 'laser' ? 'strappare' : 'swush';
+        const audioUrl = externalSoundEffects[soundKey];
+        
+        if (audioUrl) {
+          const audio = new Audio(audioUrl);
+          audio.crossOrigin = "anonymous";
+          
+          try {
+            const source = audioCtx.createMediaElementSource(audio);
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 2.5;
+            source.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            audio.play().catch(() => {
+              playFallbackSynth(type);
+            });
+            return;
+          } catch (e) {
+            audio.volume = 1.0;
+            audio.play().catch(() => {
+              playFallbackSynth(type);
+            });
+            return;
+          }
+        }
+      }
+      playFallbackSynth(type);
+    }
+
+    function playFallbackSynth(type) {
+      try {
+        const now = audioCtx.currentTime;
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(1.5, now);
+        masterGain.connect(audioCtx.destination);
+
+        if (type === 'gb_click') {
+          // Bip digitale/quadro in stile GameBoy classico
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(987.77, now); // Nota B5
+          osc.frequency.setValueAtTime(1318.51, now + 0.06); // Nota E6
+          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'laser' || type === 'strappare') {
+          const bufferSize = audioCtx.sampleRate * 0.3;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1000, now);
+          filter.frequency.exponentialRampToValueAtTime(300, now + 0.3);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGain);
+          noise.start(now);
+        } else if (type === 'swipe' || type === 'swush') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.2);
+          gain.gain.setValueAtTime(0.7, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'gb_boot') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.setValueAtTime(880.00, now + 0.08);
+          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else if (type === 'off') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+          gain.gain.setValueAtTime(0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch(e) {}
+    }
+
+    let isDrawingLaser = false;
+    let laserPoints = [];
+    let packSliced = false;
+    let dragObj = null;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragType = '';
+    let startXPoint = 0;
+    let startYPoint = 0;
+
+    function setupLaserCanvas() {
+      const canvas = document.getElementById('laser-canvas');
+      const pack = document.getElementById('booster-pack');
+      if (canvas && pack) {
+        canvas.width = pack.offsetWidth;
+        canvas.height = pack.offsetHeight;
+      }
+    }
+
+    document.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchstart', handleStart, {passive: false});
+    document.addEventListener('touchmove', handleMove, {passive: false});
+    document.addEventListener('touchend', handleEnd);
+
+    function handleStart(e) {
+      initAudio();
+      const pack = document.getElementById('booster-pack');
+      const cardTarget = e.target.closest('.card-wrapper');
+
+      if (cardTarget && !cardTarget.classList.contains('card-swiped')) {
+        dragType = 'card';
+        dragObj = cardTarget;
+        dragObj.classList.add('dragging');
+        dragObj.classList.remove('snap-back');
+        dragStartX = e.clientX || e.touches[0].clientX;
+        dragStartY = e.clientY || e.touches[0].clientY;
+        return;
+      }
+
+      if (!pack) return;
+      const rect = pack.getBoundingClientRect();
+      let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
+      let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+
+      if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
+        isDrawingLaser = true;
+        startXPoint = clientX - rect.left;
+        startYPoint = clientY - rect.top;
+        laserPoints = [{ x: startXPoint, y: startYPoint }];
+        playHighVolumeSound('laser');
+      }
+    }
+
+    function handleMove(e) {
+      if (e.cancelable && (isDrawingLaser || dragObj)) e.preventDefault();
+      
+      if (isDrawingLaser && !packSliced) {
+        const pack = document.getElementById('booster-pack');
+        if (!pack) return;
+        const rect = pack.getBoundingClientRect();
+        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+
+        if (clientX !== null && clientY !== null) {
+          let currentLocalX = clientX - rect.left;
+          let currentLocalY = clientY - rect.top;
+          laserPoints.push({ x: currentLocalX, y: currentLocalY });
+          drawLightningTrail();
+
+          let distanceX = Math.abs(currentLocalX - startXPoint);
+          let distanceY = Math.abs(currentLocalY - startYPoint);
+          
+          if (distanceX >= rect.width * 0.9 || distanceY >= rect.height * 0.9) {
+            packSliced = true;
+            isDrawingLaser = false;
+            pack.classList.add('sliced-open');
+            playHighVolumeSound('laser');
+
+            setTimeout(() => {
+              const bContainer = document.getElementById('booster-container');
+              const cArea = document.getElementById('cards-area');
+              if (bContainer) bContainer.style.display = 'none';
+              if (cArea) cArea.style.display = 'flex';
+              clearLaserCanvas();
+            }, 700);
+          }
+        }
+      } else if (dragType === 'card' && dragObj) {
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
+        if (clientY !== null) {
+          let dy = clientY - dragStartY;
+          if (dy > 0) dy = 0;
+          dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
+        }
+      }
+    }
+
+    function handleEnd(e) {
+      if (isDrawingLaser) {
+        isDrawingLaser = false;
+        clearLaserCanvas();
+      }
+      if (dragType === 'card' && dragObj) {
+        dragObj.classList.remove('dragging');
+        let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        let dy = clientY - dragStartY;
+
+        if (dy < -80) {
+          dragObj.style.transform = '';
+          performSwipe(dragObj);
+        } else {
+          dragObj.classList.add('snap-back');
+          dragObj.style.transform = 'translateY(0px) rotate(0deg)';
+        }
+        dragObj = null;
+        dragType = '';
+      }
+    }
+
+    function drawLightningTrail() {
+      const canvas = document.getElementById('laser-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (laserPoints.length < 2) return;
+
+      ctx.beginPath();
+      ctx.moveTo(laserPoints[0].x, laserPoints[0].y);
+      for (let i = 1; i < laserPoints.length; i++) {
+        let p = laserPoints[i];
+        ctx.lineTo(p.x + (Math.random() * 8 - 4), p.y + (Math.random() * 8 - 4));
+      }
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 20;
+      ctx.stroke();
+
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function clearLaserCanvas() {
+      const canvas = document.getElementById('laser-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      laserPoints = [];
+    }
+
+    let userData = null;
+    let drawnCards = [];
+    let sessionSummary = [];
+    let cardsSwipedCount = 0;
+    let cutsceneData = null;
+    let cutsceneTimer = null;
+    let cutsceneTime = 0;
+    let isDialogueActive = false;
+    let triggeredEvents = new Set();
+    let isResourcesLoaded = false;
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
+    }
+
+    async function saveProfileAndGoToPart1() {
+      initAudio();
+      const uName = document.getElementById('login-username').value.trim() || 'Rosso';
+      const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico';
+      try {
+        await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
+      } catch(e) {}
+      showScreen('part1');
+    }
+
+    function startApp() {
+      initAudio();
+      playHighVolumeSound('gb_boot');
+      const p2 = document.getElementById('part2');
+      showScreen('part2');
+      p2.classList.add('turning-on');
+      setTimeout(() => { 
+        p2.classList.remove('turning-on');
+        goToPart2Bis(); 
+      }, 1500);
+    }
+
+    // Pre-caricamento unificato completo (Parte 3 + Parte 4, incluse risorse multimediali e random reale)
+    async function goToPart2Bis() {
+      showScreen('part2bis');
+      isResourcesLoaded = false;
+      
+      const textEl = document.getElementById('preload-text');
+      const wrapperEl = document.getElementById('pokeball-wrapper');
+      textEl.innerText = "CARICAMENTO DATI & RISORSE...";
+      wrapperEl.classList.add('shaking');
+      wrapperEl.classList.remove('ready');
+
+      const minTimer = new Promise(resolve => setTimeout(resolve, 2000));
+
+      const comprehensivePreloadPromise = (async () => {
+        // 1. Fetch Stato Utente
+        try {
+          const { data } = await _supabase.from('user_state').select('*').eq('id', 1).single();
+          userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
+        } catch(e) {
+          userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
+        }
+
+        // 2. Fetch Cutscene JSON Parte 3
+        const fileName = `cutscenes/giorno${userData.streak_day}.json`;
+        try {
+          const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
+          const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
+          if (response.ok) cutsceneData = await response.json();
+          else cutsceneData = null;
+        } catch(e) { cutsceneData = null; }
+
+        if (!cutsceneData) {
+          cutsceneData = {
+            background: '', music: '',
+            actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
+            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
+          };
+        }
+
+        // 3. Pre-load risorse multimediali della cutscene (sfondi, sprite, musiche)
+        const assetPromises = [];
+        if (cutsceneData.background) {
+          const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
+          assetPromises.push(new Promise(res => { const img = new Image(); img.src = bgUrl; img.onload = res; img.onerror = res; }));
+        }
+        (cutsceneData.actors || []).forEach(actor => {
+          let assetUrl = actor.asset ? (actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`) : userData.avatar_url;
+          assetPromises.push(new Promise(res => { const img = new Image(); img.src = assetUrl; img.onload = res; img.onerror = res; }));
+        });
+        if (cutsceneData.music) {
+          const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
+          assetPromises.push(new Promise(res => { const aud = new Audio(); aud.src = musicUrl; aud.oncanplaythrough = res; aud.onerror = res; }));
+        }
+
+        // 4. Fetch Carte & Inventario per la Parte 4 (Logica di estrazione randomica reale)
+        let allCards = [];
+        let ownedIds = [];
+        try {
+          const [cRes, iRes] = await Promise.all([
+            _supabase.from('cards').select('*'),
+            _supabase.from('user_inventory').select('card_id')
+          ]);
+          if (cRes.data) allCards = cRes.data;
+          if (iRes.data) ownedIds = iRes.data.map(i => i.card_id);
+        } catch(e) {}
+
+        if (allCards.length === 0) {
+          allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
+        }
+
+        const cardsByRarity = {
+          'Comune': allCards.filter(c => c.rarity === 'Comune'),
+          'Rara': allCards.filter(c => c.rarity === 'Rara'),
+          'Epica': allCards.filter(c => c.rarity === 'Epica'),
+          'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
+        };
+
+        function getRandomCardByRarity() {
+          if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
+            return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
+          }
+          const rand = Math.random() * 100;
+          let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
+          let pool = cardsByRarity[targetRarity];
+          if (!pool || pool.length === 0) pool = allCards;
+          return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        // Pre-generazione delle 4 carte estratte pronte per la Parte 4
+        drawnCards = [];
+        for (let i = 0; i < 4; i++) {
+          const randomCard = getRandomCardByRarity();
+          const isDuplicate = ownedIds.includes(randomCard.id);
+          drawnCards.push({ ...randomCard, isDuplicate });
+          // Pre-carica anche le immagini delle carte
+          assetPromises.push(new Promise(res => { const img = new Image(); img.src = randomCard.image_url; img.onload = res; img.onerror = res; }));
+        }
+
+        await Promise.all(assetPromises);
+      })();
+
+      await Promise.all([comprehensivePreloadPromise, minTimer]);
+      isResourcesLoaded = true;
+      textEl.innerText = "TOCCA LA POKÉBALL!";
+      wrapperEl.classList.remove('shaking');
+      wrapperEl.classList.add('ready');
+    }
+
+    document.getElementById('pokeball-wrapper').addEventListener('click', () => {
+      if (!isResourcesLoaded) return;
+      isResourcesLoaded = false;
+      playHighVolumeSound('gb_click'); // Suono digitale GameBoy classico richiesto
+      
+      const pokeballEl = document.getElementById('main-pokeball');
+      const textEl = document.getElementById('preload-text');
+      const wrapperEl = document.getElementById('pokeball-wrapper');
+      
+      textEl.innerText = "";
+      wrapperEl.classList.remove('ready');
+      pokeballEl.classList.add('opening');
+
+      setTimeout(() => {
+        pokeballEl.classList.remove('opening');
+        showScreen('part3');
+        document.getElementById('val-streak').innerText = userData.streak_day;
+        document.getElementById('val-months').innerText = userData.months_completed;
+        document.getElementById('val-dolls').innerText = userData.dolls_count;
+        document.getElementById('val-dust').innerText = userData.dust_count;
+        startCutscenePlayback();
+      }, 600);
+    });
+
+    function startCutscenePlayback() {
+      const bgEl = document.getElementById('cutscene-bg');
+      const audioEl = document.getElementById('gb-music');
+      const spritesLayer = document.getElementById('sprites-layer');
+
+      spritesLayer.innerHTML = '';
+      triggeredEvents.clear();
+      cutsceneTime = 0;
+      isDialogueActive = false;
+
+      if (cutsceneData.background) {
+        bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
+      }
+
+      if (cutsceneData.music) {
+        audioEl.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
+        audioEl.play().catch(() => {});
+      }
+
+      const stage = document.getElementById('screen-wrapper');
+      const baseWidth = 480, baseHeight = 270;
+      const currentWidth = stage.clientWidth || 480, currentHeight = stage.clientHeight || 270;
+      const scaleX = currentWidth / baseWidth, scaleY = currentHeight / baseHeight;
+
+      const actorElements = {};
+      const actorCurrentPos = {};
+
+      (cutsceneData.actors || []).forEach(actor => {
+        const img = document.createElement('img');
+        img.className = 'actor-sprite';
+        let assetUrl = actor.asset ? (actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`) : userData.avatar_url;
+        img.src = assetUrl;
+
+        const startX = actor.pos ? actor.pos[0] : 100;
+        const startY = actor.pos ? actor.pos[1] : 100;
+        actorCurrentPos[actor.id] = { x: startX, y: startY };
+
+        img.style.left = `${startX * scaleX}px`;
+        img.style.top = `${startY * scaleY}px`;
+        img.style.width = `${48 * scaleX}px`;
+        img.style.height = `${48 * scaleY}px`;
+        spritesLayer.appendChild(img);
+        actorElements[actor.id] = img;
+      });
+
+      if (cutsceneTimer) clearInterval(cutsceneTimer);
+
+      cutsceneTimer = setInterval(() => {
+        if (isDialogueActive) return;
+
+        (cutsceneData.events || []).forEach(ev => {
+          if (ev.type === 'move') {
+            const elapsed = cutsceneTime - ev.start;
+            if (elapsed >= 0 && elapsed <= ev.duration) {
+              const progress = Math.min(elapsed / ev.duration, 1.0);
+              const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === String(ev.actor).toLowerCase());
+
+              if (targetActorKey) {
+                const defaultPos = actorCurrentPos[targetActorKey] || { x: 100, y: 100 };
+                const fromCoords = ev.from || [defaultPos.x, defaultPos.y];
+                const toCoords = ev.to || [defaultPos.x + 50, defaultPos.y];
+
+                const currentX = fromCoords[0] + (toCoords[0] - fromCoords[0]) * progress;
+                const currentY = fromCoords[1] + (toCoords[1] - fromCoords[1]) * progress;
+                actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
+                
+                const el = actorElements[targetActorKey];
+                if (el) {
+                  el.style.left = `${currentX * scaleX}px`;
+                  el.style.top = `${currentY * scaleY}px`;
+                }
+              }
+            }
+          }
+
+          if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
+            if (ev.type === 'dialogue') {
+              triggeredEvents.add(ev.id);
+              isDialogueActive = true;
+              document.getElementById('speaker-name').innerText = ev.speaker;
+              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Allenatore');
+              document.getElementById('dialogue-box').style.display = 'block';
+            }
+          }
+        });
+
+        cutsceneTime += 0.05;
+        if (cutsceneTime >= 10.0) {
+          clearInterval(cutsceneTimer);
+          document.getElementById('gb-music').pause();
+          goToPart4();
+        }
+      }, 50);
+    }
+
+    function handleCutsceneClick() {
+      if (isDialogueActive) {
+        document.getElementById('dialogue-box').style.display = 'none';
+        isDialogueActive = false;
+      }
+    }
+
+    // Parte 4: Rendering immediato grazie alle carte già pre-generate e pre-caricate in part2bis
+    async function goToPart4() {
+      showScreen('part4');
+      document.getElementById('booster-container').style.display = 'flex';
+      document.getElementById('cards-area').style.display = 'none';
+      document.getElementById('part4-summary').style.display = 'none';
+      
+      const pack = document.getElementById('booster-pack');
+      pack.classList.remove('sliced-open');
+      packSliced = false;
+      setTimeout(setupLaserCanvas, 50);
+
+      const container = document.getElementById('cards-stack');
+      container.innerHTML = '';
+      cardsSwipedCount = 0;
+
+      drawnCards.forEach((card, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+        wrapper.style.zIndex = 4 - index; 
+        
+        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
+        let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Epica' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : 'comune';
+
+        wrapper.innerHTML = `
+          <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
+            <div class="card-inner-frame">
+              <div class="title-container">
+                <span style="font-size: 6px; color: #ffd700;">${card.name}</span>
+              </div>
+              <div class="card-image-box">
+                <img src="${card.image_url}" alt="${card.name}">
+              </div>
+              <div class="card-description-box">
+                <span class="card-description-text">"${card.rarity}"</span>
+              </div>
+            </div>
+            ${dupHTML}
+          </div>
+        `;
+        container.appendChild(wrapper);
+      });
+    }
+
+    function performSwipe(wrapper) {
+      if (wrapper.classList.contains('card-swiped')) return;
+      playHighVolumeSound('swipe');
+      wrapper.classList.add('card-swiped');
+      cardsSwipedCount++;
+
+      if (cardsSwipedCount === 4) {
+        setTimeout(() => {
+          document.getElementById('cards-area').style.display = 'none';
+          showPart4Summary();
+        }, 600);
+      }
+    }
+
+    async function showPart4Summary() {
+      const summaryArea = document.getElementById('part4-summary');
+      const tbody = document.getElementById('part4-summary-body');
+      tbody.innerHTML = '';
+
+      let inventory = [];
+      try {
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if (iData) inventory = iData;
+      } catch(e) {}
+
+      const counts = {};
+      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+      const tempCounts = { ...counts };
+      drawnCards.forEach(card => { if (!card.isDuplicate) tempCounts[card.id] = (tempCounts[card.id] || 0) + 1; });
+
+      drawnCards.forEach(card => {
+        let note = card.isDuplicate ? '+10 Polvere' : 'Nuova!';
+        let color = card.isDuplicate ? '#8b0000' : '#2e8b57';
+        tbody.innerHTML += `
+          <tr>
+            <td>${card.name}</td>
+            <td>${card.rarity}</td>
+            <td><b>${tempCounts[card.id] || 1}</b></td>
+            <td style="color: ${color}; font-weight: bold;">${note}</td>
+          </tr>
+        `;
+      });
+      summaryArea.style.display = 'block';
+    }
+
+    async function finalizePackAndGoToPart5() {
+      for (const card of drawnCards) {
+        if (card.isDuplicate) {
+          userData.dust_count += 10;
+          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
+        } else {
+          try {
+            await _supabase.from('user_inventory').insert({ card_id: card.id });
+          } catch(e) {}
+          sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
+        }
+      }
+
+      let nextDay = userData.streak_day + 1;
+      let nextMonths = userData.months_completed;
+      if (userData.streak_day >= 30) {
+        nextDay = 1;
+        nextMonths += 1;
+      }
+
+      try {
+        await _supabase.from('user_state').update({
+          streak_day: nextDay,
+          months_completed: nextMonths,
+          dust_count: userData.dust_count,
+        }).eq('id', 1);
+      } catch(e) {}
+
+      document.getElementById('summary-content').innerHTML = sessionSummary.map(item => `<p>- ${item}</p>`).join('');
+      showScreen('part5');
+    }
+
+    function turnOff() {
+      playHighVolumeSound('off');
+      showScreen('part2');
+      setTimeout(() => { showScreen('part6'); }, 1200);
+    }
+
+    function restart() {
+      sessionSummary = [];
+      forcedRarity = null;
+      showScreen('part0');
+    }
+
+    async function openAlbum() {
+      showScreen('part-album');
+      document.getElementById('excel-dust').innerText = userData ? userData.dust_count : 0;
+
+      let cards = [], inventory = [];
+      try {
+        const { data: cData } = await _supabase.from('cards').select('*');
+        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
+        if(cData) cards = cData;
+        if(iData) inventory = iData;
+      } catch(e) {}
+
+      const counts = {};
+      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+
+      const tbody = document.getElementById('excel-table-body');
+      tbody.innerHTML = '';
+
+      cards.forEach(card => {
+        const qty = counts[card.id] || 0;
+        tbody.innerHTML += `
+          <tr>
+            <td>${card.id}</td>
+            <td>${card.name}</td>
+            <td>${card.rarity}</td>
+            <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
+          </tr>
+        `;
+      });
+    }
+  </script>
+</body>
+</html>
