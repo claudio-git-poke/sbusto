@@ -283,7 +283,6 @@
     }
     .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
     
-    /* Box descrizione: centrato sia verticalmente che orizzontalmente con supporto scroll */
     .card-description-box { 
       position: absolute; bottom: 6px; left: 6px; right: 6px; top: 103px; 
       background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); 
@@ -295,7 +294,7 @@
       font-family: 'Georgia', serif; 
       font-size: 7.5px; 
       color: #3d2817; 
-      text-align: center; /* Centrato orizzontalmente */
+      text-align: center; 
       line-height: 1.35; 
       font-style: italic; 
       width: 100%;
@@ -1216,28 +1215,54 @@
       showScreen('part-album');
       document.getElementById('excel-dust').innerText = userData ? userData.dust_count : 0;
 
-      let cards = [], inventory = [];
+      let inventory = [];
       try {
-        const { data: cData } = await _supabase.from('cards').select('*');
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if(cData) cards = cData;
         if(iData) inventory = iData;
       } catch(e) {}
 
+      // Mappa per contare le quantità per ciascun card_id
       const counts = {};
-      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
+      inventory.forEach(i => {
+        if (i.card_id) {
+          counts[i.card_id] = (counts[i.card_id] || 0) + 1;
+        }
+      });
 
       const tbody = document.getElementById('excel-table-body');
       tbody.innerHTML = '';
 
-      cards.forEach(card => {
-        const qty = counts[card.id] || 0;
+      // Mappa delle rarità in base al prefisso dell'ID salvato (es. 'comuni_anello3')
+      const rarityMap = {
+        'comuni': 'Comune',
+        'non': 'Non Comune',
+        'rare': 'Rara',
+        'ultra': 'Ultra Rara',
+        'leggendarie': 'Leggendaria'
+      };
+
+      // Se l'inventario è vuoto
+      const uniqueCardIds = Object.keys(counts);
+      if (uniqueCardIds.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:10px;">Nessuna carta nell'inventario</td></tr>`;
+        return;
+      }
+
+      uniqueCardIds.forEach(cardId => {
+        const qty = counts[cardId];
+        // Estrae il prefisso e il nome leggibile dal card_id (es. "comuni_anello3" -> folder="comuni", file="anello3")
+        const parts = cardId.split('_');
+        const folder = parts[0];
+        const rawName = parts.slice(1).join(' ') || cardId;
+        const cardName = rawName.replace(/-/g, ' ').replace(/^./, str => str.toUpperCase());
+        const rarity = rarityMap[folder] || 'Comune';
+
         tbody.innerHTML += `
           <tr>
-            <td>${card.id}</td>
-            <td>${card.name}</td>
-            <td>${card.rarity}</td>
-            <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
+            <td>${cardId}</td>
+            <td>${cardName}</td>
+            <td>${rarity}</td>
+            <td style="font-weight: bold">${qty}</td>
           </tr>
         `;
       });
