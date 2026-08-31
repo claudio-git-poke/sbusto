@@ -972,7 +972,6 @@
       container.innerHTML = '';
       cardsSwipedCount = 0;
 
-      // Nomi effettivi delle cartelle nei bucket Supabase
       const rarityConfig = [
         { label: 'comuni', name: 'Comune' },
         { label: 'non comuni', name: 'Non Comune' },
@@ -981,7 +980,6 @@
         { label: 'leggendarie', name: 'Leggendaria' }
       ];
 
-      // Mappatura delle probabilità per ciascuna delle 4 carte del pacchetto
       const slotProbabilities = [
         { 'comuni': 90, 'non comuni': 10 },
         { 'comuni': 80, 'non comuni': 20 },
@@ -989,13 +987,11 @@
         { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 }
       ];
 
-      // Caricamento effettivo delle liste file direttamente dalle cartelle di Supabase Storage
       const foldersContent = {};
       for (let rc of rarityConfig) {
         try {
           const { data, error } = await _supabase.storage.from('cards-texts').list(rc.label, { limit: 100 });
           if (data && !error) {
-            // Filtriamo solo i file .txt ed estraiamo il nome base senza estensione
             foldersContent[rc.label] = data
               .filter(file => file.name && file.name.endsWith('.txt'))
               .map(file => file.name.replace('.txt', ''));
@@ -1007,7 +1003,6 @@
         }
       }
 
-      // Fallback di sicurezza nel caso qualche cartella fosse vuota o irragiungibile
       const fallbackList = ['tavoletta-antica'];
       for (let rc of rarityConfig) {
         if (!foldersContent[rc.label] || foldersContent[rc.label].length === 0) {
@@ -1027,11 +1022,9 @@
         let chosenFolder = 'comuni';
         
         if (forcedRarity) {
-          // Se forziamo una rarità dal pannello debug F12
           const found = rarityConfig.find(r => r.name === forcedRarity);
           chosenFolder = found ? found.label : 'comuni';
         } else {
-          // Estrazione casuale basata sulle percentuali esatte dello slot i
           const roll = Math.random() * 100;
           let cumulative = 0;
           const probs = slotProbabilities[i];
@@ -1050,7 +1043,6 @@
         const rarityObj = rarityConfig.find(r => r.label === chosenFolder);
         const rarityName = rarityObj ? rarityObj.name : 'Comune';
 
-        // Ricaviamo un ID fittizio o verifichiamo sul database se la carta esiste già per gestire i doppioni
         let cardId = `${chosenFolder}_${randomFileName}`;
         let cardName = randomFileName.replace(/-/g, ' ').replace(/^./, str => str.toUpperCase());
         
@@ -1066,7 +1058,6 @@
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultra Rara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
 
-        // URL immagine e testo basati sulle sottocartelle esatte del bucket
         const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${card.folder}/${card.file_name}.png`;
         const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${card.folder}/${card.file_name}.txt`;
 
@@ -1088,7 +1079,6 @@
         `;
         container.appendChild(wrapper);
 
-        // Fetch del file di testo reale dalla cartella corrispondente
         try {
           const res = await fetch(textUrl);
           if (res.ok) {
