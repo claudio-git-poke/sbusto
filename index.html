@@ -434,7 +434,6 @@
       }
     }
 
-    // NUOVO SUONO "BLING" DI SUCCESSO (Sintetizzatore trionfale)
     function playBlingSound() {
       initAudio();
       try {
@@ -443,7 +442,7 @@
         masterGain.gain.setValueAtTime(0.8, now);
         masterGain.connect(audioCtx.destination);
 
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // Do, Mi, Sol, Do (Ottava alta)
+        const notes = [523.25, 659.25, 783.99, 1046.50]; 
         notes.forEach((freq, index) => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
@@ -462,13 +461,20 @@
       } catch(e) {}
     }
 
-    // LOGICA FRASI GIORNALIERE A TEMA POKEMON BASATE SULLA DATA
-    function getDailyPokemonQuote(streakDay) {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 0);
-      const diff = (now - startOfYear) + ((startOfYear.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
-      const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    // SCARICA LE FRASI DAL BUCKET SUPABASE O USA IL FALLBACK LOCALE
+    async function getDynamicOrFallbackQuote(streakDay) {
+      try {
+        const { data: publicUrlData } = _supabase.storage.from('quotes').getPublicUrl('loading_quotes.json');
+        const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
+        if (response.ok) {
+          const quotesArray = await response.json();
+          if (Array.isArray(quotesArray) && quotesArray.length > 0) {
+            return quotesArray[(streakDay - 1) % quotesArray.length];
+          }
+        }
+      } catch (e) {}
 
+      // Fallback in caso di errore di rete o file mancante
       const pokemonQuotes = [
         "Un viaggio di mille miglia inizia con un singolo passo... o con uno Starter!",
         "Allenati duramente e diventerai un Maestro di Legge e di Lotta!",
@@ -478,8 +484,7 @@
         "Ricorda: catturarli tutti richiede costanza, esattamente come la tua Streak!",
         "La polvere di stella accumulata oggi brillerà sul tuo album domani."
       ];
-
-      return pokemonQuotes[dayOfYear % pokemonQuotes.length];
+      return pokemonQuotes[(streakDay - 1) % pokemonQuotes.length];
     }
 
     function playHighVolumeSound(type) {
@@ -772,7 +777,6 @@
       }, 1500);
     }
 
-    // AGGIORNATO: PRE-CARICAMENTO COMPLETO DELLA PARTE 3 IN BACKGROUND
     async function goToPart2Bis() {
       showScreen('part2bis');
       isResourcesLoaded = false;
@@ -802,7 +806,7 @@
         } catch(e) { cutsceneData = null; }
 
         if (!cutsceneData) {
-          const dailyMessage = getDailyPokemonQuote(userData.streak_day);
+          const dailyMessage = await getDynamicOrFallbackQuote(userData.streak_day);
           cutsceneData = {
             background: '', music: '',
             actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
