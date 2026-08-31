@@ -972,53 +972,90 @@
       container.innerHTML = '';
       cardsSwipedCount = 0;
 
-      let allCards = [];
-      let ownedIds = [];
+      // Nomi effettivi delle cartelle nei bucket Supabase
+      const rarityConfig = [
+        { label: 'comuni', name: 'Comune' },
+        { label: 'non comuni', name: 'Non Comune' },
+        { label: 'rare', name: 'Rara' },
+        { label: 'ultra rare', name: 'Ultra Rara' },
+        { label: 'leggendarie', name: 'Leggendaria' }
+      ];
 
+      // Mappatura delle probabilità per ciascuna delle 4 carte del pacchetto
+      const slotProbabilities = [
+        { 'comuni': 90, 'non comuni': 10 },
+        { 'comuni': 80, 'non comuni': 20 },
+        { 'comuni': 50, 'non comuni': 30, 'rare': 19, 'ultra rare': 1 },
+        { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 }
+      ];
+
+      // Caricamento effettivo delle liste file direttamente dalle cartelle di Supabase Storage
+      const foldersContent = {};
+      for (let rc of rarityConfig) {
+        try {
+          const { data, error } = await _supabase.storage.from('cards-texts').list(rc.label, { limit: 100 });
+          if (data && !error) {
+            // Filtriamo solo i file .txt ed estraiamo il nome base senza estensione
+            foldersContent[rc.label] = data
+              .filter(file => file.name && file.name.endsWith('.txt'))
+              .map(file => file.name.replace('.txt', ''));
+          } else {
+            foldersContent[rc.label] = [];
+          }
+        } catch(e) {
+          foldersContent[rc.label] = [];
+        }
+      }
+
+      // Fallback di sicurezza nel caso qualche cartella fosse vuota o irragiungibile
+      const fallbackList = ['tavoletta-antica'];
+      for (let rc of rarityConfig) {
+        if (!foldersContent[rc.label] || foldersContent[rc.label].length === 0) {
+          foldersContent[rc.label] = fallbackList;
+        }
+      }
+
+      let ownedIds = [];
       try {
-        const { data: cData } = await _supabase.from('cards').select('*');
         const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if (cData) allCards = cData;
         if (iData) ownedIds = iData.map(i => i.card_id);
       } catch(e) {}
 
-      if (allCards.length === 0) {
-        allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', file_name: 'tavoletta-antica' }];
-      }
-
-      // Mappatura corretta con spazi gestiti tramite codifica URL
-      const rarityFolders = {
-        'Comune': 'comuni',
-        'Non Comune': 'non%20comuni',
-        'Rara': 'rare',
-        'Ultrarara': 'ultra%20rare',
-        'Leggendaria': 'leggendarie'
-      };
-
-      const cardsByRarity = {
-        'Comune': allCards.filter(c => c.rarity === 'Comune'),
-        'Non Comune': allCards.filter(c => c.rarity === 'Non Comune'),
-        'Rara': allCards.filter(c => c.rarity === 'Rara'),
-        'Ultrarara': allCards.filter(c => c.rarity === 'Ultrarara'),
-        'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
-      };
-
-      function getRandomCardByRarity() {
-        if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
-          return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
-        }
-        const rand = Math.random() * 100;
-        let targetRarity = rand < 2 ? 'Leggendaria' : rand < 10 ? 'Ultrarara' : rand < 30 ? 'Rara' : rand < 60 ? 'Non Comune' : 'Comune';
-        let pool = cardsByRarity[targetRarity];
-        if (!pool || pool.length === 0) pool = allCards;
-        return pool[Math.floor(Math.random() * pool.length)];
-      }
-
       drawnCards = [];
+
       for (let i = 0; i < 4; i++) {
-        const randomCard = getRandomCardByRarity();
-        const isDuplicate = ownedIds.includes(randomCard.id);
-        drawnCards.push({ ...randomCard, isDuplicate });
+        let chosenFolder = 'comuni';
+        
+        if (forcedRarity) {
+          // Se forziamo una rarità dal pannello debug F12
+          const found = rarityConfig.find(r => r.name === forcedRarity);
+          chosenFolder = found ? found.label : 'comuni';
+        } else {
+          // Estrazione casuale basata sulle percentuali esatte dello slot i
+          const roll = Math.random() * 100;
+          let cumulative = 0;
+          const probs = slotProbabilities[i];
+          
+          for (let folderKey in probs) {
+            cumulative += probs[folderKey];
+            if (roll <= cumulative) {
+              chosenFolder = folderKey;
+              break;
+            }
+          }
+        }
+
+        const fileList = foldersContent[chosenFolder];
+        const randomFileName = fileList[Math.floor(Math.random() * fileList.length)] || 'tavoletta-antica';
+        const rarityObj = rarityConfig.find(r => r.label === chosenFolder);
+        const rarityName = rarityObj ? rarityObj.name : 'Comune';
+
+        // Ricaviamo un ID fittizio o verifichiamo sul database se la carta esiste già per gestire i doppioni
+        let cardId = `${chosenFolder}_${randomFileName}`;
+        let cardName = randomFileName.replace(/-/g, ' ').replace(/^./, str => str.toUpperCase());
+        
+        const isDuplicate = ownedIds.includes(cardId);
+        drawnCards.push({ id: cardId, name: cardName, rarity: rarityName, file_name: randomFileName, folder: chosenFolder, isDuplicate });
       }
 
       drawnCards.forEach(async (card, index) => {
@@ -1027,13 +1064,11 @@
         wrapper.style.zIndex = 4 - index; 
         
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
-        let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultrarara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
+        let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultra Rara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
 
-        const baseFileName = card.file_name || card.name.toLowerCase().replace(/\s+/g, '-');
-        const folderName = rarityFolders[card.rarity] || 'comuni';
-
-        const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${folderName}/${baseFileName}.png`;
-        const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${folderName}/${baseFileName}.txt`;
+        // URL immagine e testo basati sulle sottocartelle esatte del bucket
+        const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${card.folder}/${card.file_name}.png`;
+        const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${card.folder}/${card.file_name}.txt`;
 
         wrapper.innerHTML = `
           <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
@@ -1053,7 +1088,7 @@
         `;
         container.appendChild(wrapper);
 
-        // Controllo sicuro del testo per evitare errori 400 in console se il file non esiste
+        // Fetch del file di testo reale dalla cartella corrispondente
         try {
           const res = await fetch(textUrl);
           if (res.ok) {
