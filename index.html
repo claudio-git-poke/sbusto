@@ -1,1379 +1,567 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GameBoy Streak - Ancient Edition</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body { 
-      background: #111; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      min-height: 100vh; 
-      font-family: 'Press Start 2P', monospace;
-      padding: 10px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Arcaico - GameBoy Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  body {
+    background-color: #0b0b0b;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
 
-    #gameboy-frame {
-      width: 100%;
-      max-width: 640px;
-      height: 92vh;
-      max-height: 400px;
-      background: #8b0000;
-      border: 6px solid #1a1a1a;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.3);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      padding: 12px;
-    }
+  #gameboy-frame {
+    width: 100%;
+    max-width: 640px;
+    height: 92vh;
+    max-height: 400px;
+    background: #8b0000;
+    border: 6px solid #1a1a1a;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 12px;
+  }
 
-    @media (max-aspect-ratio: 1/1) {
-      #gameboy-frame { max-height: 80vh; }
-    }
-    
-    #frame-label {
-      position: absolute;
-      top: 6px;
-      color: #ffcc00;
-      font-size: 7px;
-      letter-spacing: 1px;
-      text-align: center;
-      text-shadow: 1px 1px #000;
-    }
+  @media (max-aspect-ratio: 1/1) {
+    #gameboy-frame { max-height: 80vh; }
+  }
 
-    #screen-wrapper {
-      width: 100%;
-      height: 100%;
-      aspect-ratio: 16 / 9;
-      background: #000;
-      border: 4px solid #111;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+  #frame-label {
+    position: absolute;
+    top: 6px;
+    color: #ffcc00;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-align: center;
+    text-shadow: 1px 1px #000;
+  }
 
-    /* CORRETTO: Tutte le schermate partono nascoste di base */
-    .screen { 
-      width: 100%; 
-      height: 100%; 
-      display: none; 
-      flex-direction: column; 
-      justify-content: center; 
-      align-items: center; 
-      text-align: center; 
-      padding: 12px; 
-      box-sizing: border-box; 
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    .screen.active { display: flex; }
+  #screen-wrapper {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border: 4px solid #111;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    #part0 { background: #1a1a1a; color: #fff; font-size: 8px; }
-    #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 4px 0 8px 0; width: 80%; border: 2px solid #ffcc00; background: #000; color: #ffcc00; }
+  .screen { 
+    width: 100%; 
+    height: 100%; 
+    display: none; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    text-align: center; 
+    padding: 12px; 
+    box-sizing: border-box; 
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .screen.active { display: flex; }
 
-    #part1 { background: #111; color: #fff; }
-    #part2 { background: #000; }
-    
-    /* --- SCHERMATA PART 2 BIS (PRELOAD POKÉBALL INTERATTIVA A SCHERMO INTERO) --- */
-    #part2bis { 
-      background: #1a140f; 
-      color: #f4e8c1; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    
-    .pokeball-loader-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      cursor: default;
-      transition: transform 0.3s ease;
-    }
-    
-    .pokeball-loader-container.ready {
-      cursor: pointer;
-    }
+  #part0 { background: #1a1a1a; color: #fff; font-size: 8px; }
+  #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 4px 0 8px 0; width: 80%; border: 2px solid #ffcc00; background: #000; color: #ffcc00; }
 
-    .pokeball-loader-container.shaking .pokeball {
-      animation: pokeballWobble 0.8s infinite ease-in-out;
-    }
+  #part1 { background: #111; color: #fff; }
+  #part2 { background: #000; }
 
-    @keyframes pokeballWobble {
-      0% { transform: rotate(0deg); }
-      15% { transform: rotate(-15deg); }
-      30% { transform: rotate(12deg); }
-      45% { transform: rotate(-10deg); }
-      60% { transform: rotate(6deg); }
-      75% { transform: rotate(0deg); }
-      100% { transform: rotate(0deg); }
-    }
+  #part2bis { 
+    background: #1a140f; 
+    color: #f4e8c1; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
 
-    .pokeball {
-      width: 70px;
-      height: 70px;
-      background: linear-gradient(to bottom, #ff3b3b 0%, #ff3b3b 48%, #222 48%, #222 52%, #fff 52%, #fff 100%);
-      border: 4px solid #111;
-      border-radius: 50%;
-      position: relative;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
-      transition: filter 0.3s ease;
-    }
+  .pokeball-loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    cursor: default;
+    transition: transform 0.3s ease;
+  }
 
-    .pokeball-loader-container.ready .pokeball {
-      filter: drop-shadow(0 0 12px #ffd700);
-      animation: bounceReady 1s infinite alternate ease-in-out;
-    }
+  .pokeball-loader-container.ready {
+    cursor: pointer;
+  }
 
-    @keyframes bounceReady {
-      0% { transform: translateY(0) scale(1); }
-      100% { transform: translateY(-5px) scale(1.05); }
-    }
+  .pokeball-loader-container.shaking .pokeball {
+    animation: pokeballWobble 0.8s infinite ease-in-out;
+  }
 
-    .pokeball-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 18px;
-      height: 18px;
-      background: #fff;
-      border: 4px solid #222;
-      border-radius: 50%;
-      box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
-    }
+  @keyframes pokeballWobble {
+    0% { transform: rotate(0deg); }
+    15% { transform: rotate(-15deg); }
+    30% { transform: rotate(12deg); }
+    45% { transform: rotate(-10deg); }
+    60% { transform: rotate(6deg); }
+    75% { transform: rotate(0deg); }
+    100% { transform: rotate(0deg); }
+  }
 
-    .pokeball-center-inner {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 6px;
-      height: 6px;
-      background: #ff3b3b;
-      border-radius: 50%;
-    }
+  .pokeball {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(to bottom, #ff3b3b 0%, #ff3b3b 48%, #222 48%, #222 52%, #fff 52%, #fff 100%);
+    border: 4px solid #111;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
+    transition: filter 0.3s ease;
+  }
 
-    .pokeball.opening {
-      animation: openPokeballAnim 0.6s forwards ease-in-out;
-    }
-    @keyframes openPokeballAnim {
-      0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-      40% { transform: scale(1.3) rotate(-10deg); filter: brightness(3); }
-      70% { transform: scale(1.5) rotate(10deg); filter: brightness(5); background: #fff; }
-      100% { transform: scale(3); opacity: 0; filter: brightness(10); }
-    }
+  .pokeball-loader-container.ready .pokeball {
+    filter: drop-shadow(0 0 12px #ffd700);
+    animation: bounceReady 1s infinite alternate ease-in-out;
+  }
 
-    #preload-text {
-      font-size: 6px;
-      letter-spacing: 1px;
-      text-align: center;
-      color: #ffd700;
-      text-shadow: 1px 1px #000;
-      min-height: 15px;
-    }
+  @keyframes bounceReady {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-5px) scale(1.05); }
+  }
 
-    .turning-on { animation: turnOn 1.5s forwards; }
-    @keyframes turnOn {
-      0% { background: #000; opacity: 0; }
-      50% { background: #554422; opacity: 0.5; }
-      100% { background: #332211; opacity: 1; }
-    }
+  .pokeball-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border: 4px solid #222;
+    border-radius: 50%;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+  }
 
-    .gb-screen { background: #2c221e; color: #f4e8c1; }
+  .pokeball-center-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: #ff3b3b;
+    border-radius: 50%;
+  }
 
-    #booster-container {
-      perspective: 1000px;
-      position: relative;
-    }
-    .booster-pack {
-      width: 130px; height: 185px; 
-      background: linear-gradient(135deg, #222 0%, #444 30%, #b8860b 50%, #111 80%, #000 100%);
-      border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: crosshair; display: flex;
-      flex-direction: column; box-shadow: 0 12px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.6); 
-      overflow: hidden; touch-action: none;
-    }
-    .booster-shine {
-      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
-      pointer-events: none; border-radius: 10px; animation: shineMove 3s infinite linear;
-    }
-    @keyframes shineMove {
-      0% { transform: translateX(-60%) translateY(-60%) rotate(25deg); }
-      100% { transform: translateX(60%) translateY(60%) rotate(25deg); }
-    }
-    .booster-top {
-      height: 30px; background: linear-gradient(90deg, #555, #888, #555); border-bottom: 2px dashed #ffd700; display: flex;
-      align-items: center; justify-content: center; font-size: 5px; color: #ffd700; font-weight: bold;
-      border-radius: 7px 7px 0 0; text-shadow: 1px 1px #000;
-    }
-    .booster-bottom {
-      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 8px;
-      font-weight: bold; color: #ffd700; flex-direction: column; gap: 8px;
-    }
-    .booster-logo {
-      width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700);
-    }
+  .pokeball.opening {
+    animation: openPokeballAnim 0.6s forwards ease-in-out;
+  }
+  @keyframes openPokeballAnim {
+    0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+    40% { transform: scale(1.3) rotate(-10deg); filter: brightness(3); }
+    70% { transform: scale(1.5) rotate(10deg); filter: brightness(5); background: #fff; }
+    100% { transform: scale(3); opacity: 0; filter: brightness(10); }
+  }
 
-    #laser-canvas {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50;
-    }
+  #preload-text {
+    font-size: 6px;
+    letter-spacing: 1px;
+    text-align: center;
+    color: #ffd700;
+    text-shadow: 1px 1px #000;
+    min-height: 15px;
+  }
 
-    .booster-pack.sliced-open {
-      animation: packOpenAnim 0.8s ease-out forwards;
-    }
-    @keyframes packOpenAnim {
-      0% { transform: scale(1); filter: brightness(2); }
-      50% { transform: scale(1.1) rotate(5deg); filter: brightness(3) drop-shadow(0 0 20px #00ffff); }
-      100% { transform: translateY(180px) scale(0.6) rotate(25deg); opacity: 0; }
-    }
+  .turning-on { animation: turnOn 1.5s forwards; }
+  @keyframes turnOn {
+    0% { background: #000; opacity: 0; }
+    50% { background: #554422; opacity: 0.5; }
+    100% { background: #332211; opacity: 1; }
+  }
 
-    #sparkles-container {
-      position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; z-index: 20;
-    }
-    .firefly {
-      position: absolute; width: 4px; height: 4px; background: #ffff88; border-radius: 50%;
-      box-shadow: 0 0 8px #ffcc00, 0 0 15px #ffff00;
-      animation: floatFirefly 2.5s infinite ease-in-out;
-    }
-    @keyframes floatFirefly {
-      0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
-      30% { opacity: 1; }
-      100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
-    }
+  .gb-screen { background: #2c221e; color: #f4e8c1; }
 
-    .card-container { position: relative; width: 155px; height: 215px; margin-top: 2px; z-index: 5; }
-    .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: center; }
-    .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
-    .card-wrapper.snap-back { transition: transform 0.3s ease; }
-    .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
-    
-    .pokemon-card {
-      width: 155px;
-      height: 215px;
-      background: radial-gradient(circle at center, rgba(245, 230, 205, 0.9) 0%, rgba(196, 164, 124, 0.95) 100%);
-      border-radius: 10px;
-      border: 6px solid #5c3d29; 
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(70, 45, 25, 0.7);
-      display: flex;
-      flex-direction: column;
-      padding: 6px;
-      box-sizing: border-box;
-      position: relative;
-      overflow: hidden;
-      pointer-events: none;
-      transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
-    }
+  #booster-container {
+    perspective: 1000px;
+    position: relative;
+  }
+  .booster-pack {
+    width: 130px; height: 185px; 
+    background: linear-gradient(135deg, #222 0%, #444 30%, #b8860b 50%, #111 80%, #000 100%);
+    border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: crosshair; display: flex;
+    flex-direction: column; box-shadow: 0 12px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.6); 
+    overflow: hidden; touch-action: none;
+  }
+  .booster-shine {
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
+    pointer-events: none; border-radius: 10px; animation: shineMove 3s infinite linear;
+  }
+  @keyframes shineMove {
+    0% { transform: translateX(-60%) translateY(-60%) rotate(25deg); }
+    100% { transform: translateX(60%) translateY(60%) rotate(25deg); }
+  }
+  .booster-top {
+    height: 30px; background: linear-gradient(90deg, #555, #888, #555); border-bottom: 2px dashed #ffd700; display: flex;
+    align-items: center; justify-content: center; font-size: 5px; color: #ffd700; font-weight: bold;
+    border-radius: 7px 7px 0 0; text-shadow: 1px 1px #000;
+  }
+  .booster-bottom {
+    flex: 1; display: flex; align-items: center; justify-content: center; font-size: 8px;
+    font-weight: bold; color: #ffd700; flex-direction: column; gap: 8px;
+  }
+  .booster-logo {
+    width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700);
+  }
 
-    .pokemon-card.comune { background: radial-gradient(circle at center, #dcdcdc 0%, #b5b5b5 100%); border-color: #737373; }
-    .pokemon-card.comune .card-inner-frame { background: linear-gradient(135deg, #eaeaea 0%, #cccccc 100%); border-color: #8c8c8c; }
+  #laser-canvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50;
+  }
 
-    .pokemon-card.non-comune { background: radial-gradient(circle at center, #595959 0%, #383838 100%); border-color: #1a1a1a; }
-    .pokemon-card.non-comune .card-inner-frame { background: linear-gradient(135deg, #4a4a4a 100%, #2e2e2e 0%); border-color: #141414; }
-    .pokemon-card.non-comune .card-description-text { color: #d9d9d9; }
+  .booster-pack.sliced-open {
+    animation: packOpenAnim 0.8s ease-out forwards;
+  }
+  @keyframes packOpenAnim {
+    0% { transform: scale(1); filter: brightness(2); }
+    50% { transform: scale(1.1) rotate(5deg); filter: brightness(3) drop-shadow(0 0 20px #00ffff); }
+    100% { transform: translateY(180px) scale(0.6) rotate(25deg); opacity: 0; }
+  }
 
-    .pokemon-card.rara { background: radial-gradient(circle at center, #222222 0%, #0d0d0d 100%); border-color: #050505; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.95), inset 0 0 15px rgba(0, 0, 0, 0.9); }
-    .pokemon-card.rara .card-inner-frame { background: linear-gradient(135deg, #171717 0%, #080808 100%); border-color: #262626; }
-    .pokemon-card.rara .card-description-text { color: #cccccc; }
+  #sparkles-container {
+    position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; z-index: 20;
+  }
+  .firefly {
+    position: absolute; width: 4px; height: 4px; background: #ffff88; border-radius: 50%;
+    box-shadow: 0 0 8px #ffcc00, 0 0 15px #ffff00;
+    animation: floatFirefly 2.5s infinite ease-in-out;
+  }
+  @keyframes floatFirefly {
+    0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
+  }
 
-    .pokemon-card.ultra-rara {
-      background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
-      background-size: 400% 400%;
-      animation: rainbowFoil 8s ease infinite;
-      border-color: #fff;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.6);
-    }
-    .pokemon-card.ultra-rara .card-inner-frame { background: rgba(20, 20, 20, 0.6); border-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(2px); }
-    .pokemon-card.ultra-rara .card-description-text { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
-    
-    @keyframes rainbowFoil {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+  .card-container { position: relative; width: 155px; height: 215px; margin-top: 2px; z-index: 5; }
+  .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: center; }
+  .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
+  .card-wrapper.snap-back { transition: transform 0.3s ease; }
+  .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
 
-    .pokemon-card.ultra-rara::after {
-      content: "";
-      position: absolute;
-      top: -50%; left: -50%; width: 200%; height: 200%;
-      background: linear-gradient(0deg, transparent, rgba(255,255,255,0.3), transparent);
-      transform: rotate(30deg);
-      animation: shineOverlay 3s linear infinite;
-      pointer-events: none;
-    }
-    @keyframes shineOverlay {
-      0% { transform: translateY(-100%) rotate(30deg); }
-      100% { transform: translateY(100%) rotate(30deg); }
-    }
+  .pokemon-card {
+    width: 155px;
+    height: 215px;
+    background: radial-gradient(circle at center, rgba(245, 230, 205, 0.9) 0%, rgba(196, 164, 124, 0.95) 100%);
+    border-radius: 10px;
+    border: 6px solid #5c3d29; 
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(70, 45, 25, 0.7);
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+    transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+  }
 
-    .pokemon-card.leggendaria {
-      background: radial-gradient(circle at center, #fff2b2 0%, #d4af37 60%, #856508 100%);
-      border-color: #3b2c02;
-      box-shadow: 0 10px 25px rgba(212, 175, 55, 0.7), inset 0 0 15px rgba(255, 240, 150, 0.8);
-      animation: goldPulse 4s ease-in-out infinite;
-    }
-    .pokemon-card.leggendaria .card-inner-frame { background: linear-gradient(135deg, #fff7d1 0%, #c29b27 100%); border-color: #5c4303; }
-    .pokemon-card.leggendaria .card-description-text { color: #2e2202; }
+  .pokemon-card.comune { background: radial-gradient(circle at center, #dcdcdc 0%, #b5b5b5 100%); border-color: #737373; }
+  .pokemon-card.comune .card-inner-frame { background: linear-gradient(135deg, #eaeaea 0%, #cccccc 100%); border-color: #8c8c8c; }
 
-    @keyframes goldPulse {
-      0%, 100% { box-shadow: 0 10px 20px rgba(212, 175, 55, 0.5), inset 0 0 10px rgba(255, 240, 150, 0.5); }
-      50% { box-shadow: 0 10px 35px rgba(255, 215, 0, 0.9), inset 0 0 20px rgba(255, 255, 200, 0.9); }
-    }
+  .pokemon-card.non-comune { background: radial-gradient(circle at center, #595959 0%, #383838 100%); border-color: #1a1a1a; }
+  .pokemon-card.non-comune .card-inner-frame { background: linear-gradient(135deg, #4a4a4a 100%, #2e2e2e 0%); border-color: #141414; }
+  .pokemon-card.non-comune .card-description-text { color: #d9d9d9; }
 
-    .sparkle-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 5; }
-    .sparkle { position: absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; box-shadow: 0 0 6px #ffeb3b, 0 0 12px #ffc107; opacity: 0; animation: sparkleAnim 2.5s ease-in-out infinite; }
-    .sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
-    .sparkle:nth-child(2) { top: 75%; left: 80%; animation-delay: 0.8s; }
-    .sparkle:nth-child(3) { top: 40%; left: 85%; animation-delay: 1.5s; }
-    .sparkle:nth-child(4) { top: 80%; left: 25%; animation-delay: 0.4s; }
+  .pokemon-card.rara { background: radial-gradient(circle at center, #222222 0%, #0d0d0d 100%); border-color: #050505; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.95), inset 0 0 15px rgba(0, 0, 0, 0.9); }
+  .pokemon-card.rara .card-inner-frame { background: linear-gradient(135deg, #171717 0%, #080808 100%); border-color: #262626; }
+  .pokemon-card.rara .card-description-text { color: #cccccc; }
 
-    @keyframes sparkleAnim {
-      0%, 100% { transform: scale(0); opacity: 0; }
-      50% { transform: scale(1.4); opacity: 1; }
-    }
+  .pokemon-card.ultra-rara {
+    background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
+    background-size: 400% 400%;
+    animation: rainbowFoil 8s ease infinite;
+    border-color: #fff;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.6);
+  }
+  .pokemon-card.ultra-rara .card-inner-frame { background: rgba(20, 20, 20, 0.6); border-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(2px); }
+  .pokemon-card.ultra-rara .card-description-text { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
 
-    .card-inner-frame {
-      background: linear-gradient(135deg, #e6d3b3 0%, #cfb58c 100%);
-      border: 2px solid #8c6b48;
-      border-radius: 6px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 6px;
-      box-sizing: border-box;
-      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
-      z-index: 2;
-      position: relative;
-    }
+  @keyframes rainbowFoil {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 
-    .title-container {
-      position: absolute; top: 6px; left: 6px; width: 78%; height: 24px;
-      background: linear-gradient(to bottom, #4d3825, #2a1f15);
-      border: 2px solid #1a130d; border-radius: 5px 5px 12px 5px;
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.5);
-      display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
-    }
+  .pokemon-card.ultra-rara::after {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(0deg, transparent, rgba(255,255,255,0.3), transparent);
+    transform: rotate(30deg);
+    animation: shineOverlay 3s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes shineOverlay {
+    0% { transform: translateY(-100%) rotate(30deg); }
+    100% { transform: translateY(100%) rotate(30deg); }
+  }
 
-    .unown-svg-title { width: 100%; height: 18px; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.9)); }
-    .card-image-box { position: absolute; top: 34px; left: 6px; right: 6px; height: 105px; background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); border: 2px solid #5c3d29; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; }
-    .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
-    .card-description-box { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 48px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 4px; padding: 4px 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 2; }
-    .card-description-text { font-family: 'Georgia', serif; font-size: 5px; color: #3d2817; text-align: center; line-height: 1.3; font-style: italic; }
-    .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
+  .pokemon-card.leggendaria {
+    background: radial-gradient(circle at center, #fff2b2 0%, #d4af37 60%, #856508 100%);
+    border-color: #3b2c02;
+    box-shadow: 0 10px 25px rgba(212, 175, 55, 0.7), inset 0 0 15px rgba(255, 240, 150, 0.8);
+    animation: goldPulse 4s ease-in-out infinite;
+  }
+  .pokemon-card.leggendaria .card-inner-frame { background: linear-gradient(135deg, #fff7d1 0%, #c29b27 100%); border-color: #5c4303; }
+  .pokemon-card.leggendaria .card-description-text { color: #2e2202; }
 
-    .card-glow-reveal { animation: cardGlowFade 1.5s ease-out forwards; }
-    @keyframes cardGlowFade { 0% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
+  @keyframes goldPulse {
+    0%, 100% { box-shadow: 0 10px 20px rgba(212, 175, 55, 0.5), inset 0 0 10px rgba(255, 240, 150, 0.5); }
+    50% { box-shadow: 0 10px 35px rgba(255, 215, 0, 0.9), inset 0 0 20px rgba(255, 255, 200, 0.9); }
+  }
 
-    #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
-    .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; text-transform: uppercase;}
-    .excel-table { width: 100%; border-collapse: collapse; font-size: 8px; font-family: Arial, sans-serif;}
-    .excel-table th, .excel-table td { border: 1px solid #ccc; padding: 4px; text-align: left; }
-    .excel-table th { background: #e6e6e6; }
-    .excel-table tr:nth-child(even) { background: #f9f9f9; }
+  .sparkle-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 5; }
+  .sparkle { position: absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; box-shadow: 0 0 6px #ffeb3b, 0 0 12px #ffc107; opacity: 0; animation: sparkleAnim 2.5s ease-in-out infinite; }
+  .sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+  .sparkle:nth-child(2) { top: 75%; left: 80%; animation-delay: 0.8s; }
+  .sparkle:nth-child(3) { top: 40%; left: 85%; animation-delay: 1.5s; }
+  .sparkle:nth-child(4) { top: 80%; left: 25%; animation-delay: 0.4s; }
 
-    button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #3d2616; color: #ffcc00; border: 3px solid #ffd700; box-shadow: 2px 2px 0px #111; margin-top: 6px; }
-    button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #111; }
-    
-    .btn-small { padding: 5px 7px; font-size: 6px; }
-    .stat-box { font-size: 6px; line-height: 9px; text-align: left; }
+  @keyframes sparkleAnim {
+    0%, 100% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.4); opacity: 1; }
+  }
 
-    .actor-sprite { position: absolute; pointer-events: none; z-index: 5; image-rendering: pixelated; object-fit: contain; }
+  .card-inner-frame {
+    background: linear-gradient(135deg, #e6d3b3 0%, #cfb58c 100%);
+    border: 2px solid #8c6b48;
+    border-radius: 6px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    box-sizing: border-box;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+    position: relative;
+  }
 
-    #debug-panel {
-      position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #ffd700;
-      padding: 6px; border-radius: 6px; z-index: 99999; display: flex; flex-direction: column; gap: 4px;
-    }
-    #debug-panel button { font-size: 5px; padding: 4px 6px; margin: 0; background: #222; color: #00ffcc; border-color: #00ffcc; }
-  </style>
+  .title-container {
+    position: absolute; top: 6px; left: 6px; width: 78%; height: 24px;
+    background: linear-gradient(to bottom, #4d3825, #2a1f15);
+    border: 2px solid #1a130d; border-radius: 5px 5px 12px 5px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
+  }
+
+  .unown-svg-title { width: 100%; height: 18px; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.9)); }
+  .card-image-box { position: absolute; top: 34px; left: 6px; right: 6px; height: 105px; background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); border: 2px solid #5c3d29; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; }
+  .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
+  .card-description-box { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 48px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 4px; padding: 4px 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 2; }
+  .card-description-text { font-family: 'Georgia', serif; font-size: 5px; color: #3d2817; text-align: center; line-height: 1.3; font-style: italic; }
+  .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
+
+  .card-glow-reveal { animation: cardGlowFade 1.5s ease-out forwards; }
+  @keyframes cardGlowFade { 0% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
+
+  #part-album { background: #fff; color: #000; font-family: Arial, sans-serif; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto; }
+  .excel-header { font-size: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px; text-transform: uppercase;}
+  .excel-table { width: 100%; border-collapse: collapse; font-size: 8px; font-family: Arial, sans-serif;}
+  .excel-table th, .excel-table td { border: 1px solid #ccc; padding: 4px; text-align: left; }
+  .excel-table th { background: #e6e6e6; }
+  .excel-table tr:nth-child(even) { background: #f9f9f9; }
+
+  button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #3d2616; color: #ffcc00; border: 3px solid #ffd700; box-shadow: 2px 2px 0px #111; margin-top: 6px; }
+  button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #111; }
+
+  .btn-small { padding: 5px 7px; font-size: 6px; }
+  .stat-box { font-size: 6px; line-height: 9px; text-align: left; }
+
+  .actor-sprite { position: absolute; pointer-events: none; z-index: 5; image-rendering: pixelated; object-fit: contain; }
+</style>
 </head>
 <body>
 
-  <div id="debug-panel">
-    <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL F12 ]</div>
-    <button onclick="testSupabaseConnection()">Test Connessione Supabase</button>
-    <button onclick="forcedRarity = 'Leggendaria'; console.log('Forzata Leggendaria'); alert('Forzata Leggendaria!');">Forza Leggendaria</button>
-    <button onclick="forcedRarity = 'Epica'; console.log('Forzata Epica'); alert('Forzata Epica!');">Forza Epica</button>
-    <button onclick="forcedRarity = null; console.log('Filtro rimosso'); alert('Filtro rimosso.');">Reset Filtro</button>
-    <button onclick="resetStreakTo1()" style="color: #ff4444; border-color: #ff4444;">Resetta Streak a 1</button>
-  </div>
+<div id="gameboy-frame">
+  <div id="frame-label">NINTENDO GAMEBOY — POKÉMON ARCAICO</div>
+  <div id="screen-wrapper">
 
-  <div id="gameboy-frame">
-    <div id="frame-label">[ POKEMON CARD SYNC - ANCIENT ERA ]</div>
+    <div id="part0" class="screen active">
+      <div style="margin-bottom: 6px; color: #ffcc00;">CONFIGURAZIONE ALLENATORE</div>
+      <label>NOME:</label>
+      <input type="text" id="login-username" value="Rosso">
+      <label>AVATAR (URL PNG):</label>
+      <input type="text" id="login-avatar" value="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico">
+      <button onclick="saveProfileAndGoToPart1()">REGISTRATI</button>
+    </div>
 
-    <div id="screen-wrapper">
+    <div id="part1" class="screen">
+      <button id="start-btn" onclick="startApp()">START</button>
+    </div>
 
-      <div id="part0" class="screen active">
-        <div style="margin-bottom: 6px; color: #ffcc00;">CONFIGURAZIONE ALLENATORE</div>
-        <label>NOME:</label>
-        <input type="text" id="login-username" value="Rosso">
-        <label>AVATAR (URL PNG):</label>
-        <input type="text" id="login-avatar" value="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico">
-        <button onclick="saveProfileAndGoToPart1()">REGISTRATI</button>
-      </div>
+    <div id="part2" class="screen"></div>
 
-      <div id="part1" class="screen">
-        <button id="start-btn" onclick="startApp()">START</button>
-      </div>
-
-      <div id="part2" class="screen"></div>
-
-      <!-- SCHERMATA PART 2 BIS (PRELOAD CON POKÉBALL INTERATTIVA) -->
-      <div id="part2bis" class="screen">
-        <div id="pokeball-wrapper" class="pokeball-loader-container shaking">
-          <div class="pokeball" id="main-pokeball">
-            <div class="pokeball-center">
-              <div class="pokeball-center-inner"></div>
-            </div>
+    <div id="part2bis" class="screen">
+      <div id="pokeball-wrapper" class="pokeball-loader-container shaking">
+        <div class="pokeball" id="main-pokeball">
+          <div class="pokeball-center">
+            <div class="pokeball-center-inner"></div>
           </div>
-          <div id="preload-text">CARICAMENTO...</div>
         </div>
+        <div id="preload-text">CARICAMENTO...</div>
+      </div>
+    </div>
+
+    <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
+      <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
+      <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
+
+      <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 10; background: rgba(44, 34, 30, 0.9); padding: 4px; border-radius: 4px; border: 1px solid #ffd700;">
+        <div>STREAK: <span id="val-streak">1</span> GG | MESI: <span id="val-months">0</span></div>
+        <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
       </div>
 
-      <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
-        <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
-        <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
-
-        <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 10; background: rgba(44, 34, 30, 0.9); padding: 4px; border-radius: 4px; border: 1px solid #ffd700;">
-          <div>STREAK: <span id="val-streak">1</span> GG | MESI: <span id="val-months">0</span></div>
-          <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
-        </div>
-
-        <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 45px; background: #3b2219; border: 3px solid #ffd700; padding: 6px; z-index: 10; text-align: left; display: none;">
-          <div id="speaker-name" style="font-size: 7px; color: #ffd700; font-weight: bold; margin-bottom: 3px; text-transform: uppercase;"></div>
-          <div id="dialogue-text" style="font-size: 6px; line-height: 9px; color: #f4e8c1;"></div>
-          <div style="font-size: 5px; color: #ffd700; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
-        </div>
-        <audio id="gb-music" loop></audio>
+      <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 45px; background: #3b2219; border: 3px solid #ffd700; padding: 6px; z-index: 10; text-align: left; display: none;">
+        <div id="speaker-name" style="font-size: 7px; color: #ffd700; font-weight: bold; margin-bottom: 3px; text-transform: uppercase;"></div>
+        <div id="dialogue-text" style="font-size: 6px; line-height: 9px; color: #f4e8c1;"></div>
+        <div style="font-size: 5px; color: #ffd700; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
       </div>
+      <audio id="gb-music" loop></audio>
+    </div>
 
-      <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
-        
-        <div id="sparkles-container"></div>
+    <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
+      
+      <!-- Elementi audio locali integrati -->
+      <audio id="audio-strappa" src="strappare.mp3" preload="auto"></audio>
+      <audio id="audio-swush" src="swush.mp3" preload="auto"></audio>
 
-        <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA (90%)!</div>
-          <div style="position: relative;">
-            <canvas id="laser-canvas"></canvas>
-            <div class="booster-pack" id="booster-pack">
-              <div class="booster-shine"></div>
-              <div class="booster-top">⚡ PLASMA</div>
-              <div class="booster-bottom">
-                <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
-                <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
-              </div>
+      <div id="sparkles-container"></div>
+
+      <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
+        <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA (90%)!</div>
+        <div style="position: relative;">
+          <canvas id="laser-canvas"></canvas>
+          <div class="booster-pack" id="booster-pack">
+            <div class="booster-shine"></div>
+            <div class="booster-top">⚡ PLASMA</div>
+            <div class="booster-bottom">
+              <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
+              <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
             </div>
           </div>
         </div>
-
-        <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 4px; color: #ffd700;">SOLLEVA VERSO L'ALTO (SWIPE UP)</div>
-          <div class="card-container" id="cards-stack"></div>
-        </div>
-
-        <div id="part4-summary" style="display: none; background: #2c221e; color: #f4e8c1; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto; z-index: 10; border: 2px solid #ffd700;">
-          <div class="excel-header" style="text-align: center; background: #3b2219; color: #ffd700;">RIEPILOGO SBUSTATA ARCAICA</div>
-          <table class="excel-table" style="background: #f4e8c1;">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Rarità</th>
-                <th>Qtà Tot</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody id="part4-summary-body"></tbody>
-          </table>
-          <button onclick="finalizePackAndGoToPart5()" style="background: #8b0000; color: #ffd700; border: 2px solid #ffd700; width: 100%; margin-top: 10px;">CONTINUA AL LOG</button>
-        </div>
-
       </div>
 
-      <div id="part5" class="screen gb-screen">
-        <h3 style="font-size: 8px; margin-bottom: 4px; color: #ffd700;">LOG SALVATAGGIO</h3>
-        <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
-        <button onclick="openAlbum()" class="btn-small" style="background: #3d2616; color: #ffd700; margin-top: 8px; border-color: #ffd700;">VEDI ALBUM</button>
-        <button onclick="turnOff()">SPEGNI</button>
+      <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
+        <div style="font-size: 5px; margin-bottom: 4px; color: #ffd700;">SOLLEVA VERSO L'ALTO (SWIPE UP)</div>
+        <div class="card-container" id="cards-stack"></div>
       </div>
 
-      <div id="part6" class="screen" style="background: #000;">
-        <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
-      </div>
-
-      <div id="part-album" class="screen">
-        <div class="excel-header">DATABASE INVENTARIO ARCAICO</div>
-        <div style="font-size: 8px; margin-bottom: 6px;">
-          <b>Polvere Totale:</b> <span id="excel-dust">0</span>
-        </div>
-        <table class="excel-table">
+      <div id="part4-summary" style="display: none; background: #2c221e; color: #f4e8c1; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto; z-index: 10; border: 2px solid #ffd700;">
+        <div class="excel-header" style="text-align: center; background: #3b2219; color: #ffd700;">RIEPILOGO SBUSTATA ARCAICA</div>
+        <table class="excel-table" style="background: #f4e8c1;">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Nome</th>
               <th>Rarità</th>
-              <th>Qtà</th>
+              <th>Qtà Tot</th>
+              <th>Note</th>
             </tr>
           </thead>
-          <tbody id="excel-table-body"></tbody>
+          <tbody id="part4-summary-body"></tbody>
         </table>
-        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #3d2616; color: #ffd700; border-color: #ffd700;">TORNA AL LOG</button>
+        <button onclick="finalizePackAndGoToPart5()" style="background: #8b0000; color: #ffd700; border: 2px solid #ffd700; width: 100%; margin-top: 10px;">CONTINUA AL LOG</button>
       </div>
 
     </div>
+
+    <div id="part5" class="screen gb-screen">
+      <h3 style="font-size: 8px; margin-bottom: 4px; color: #ffd700;">LOG SALVATAGGIO</h3>
+      <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
+      <button onclick="openAlbum()" class="btn-small" style="background: #3d2616; color: #ffd700; margin-top: 8px; border-color: #ffd700;">VEDI ALBUM</button>
+      <button onclick="turnOff()">SPEGNI</button>
+    </div>
+
+    <div id="part6" class="screen" style="background: #000;">
+      <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
+    </div>
+
+    <div id="part-album" class="screen">
+      <div class="excel-header">DATABASE INVENTARIO ARCAICO</div>
+      <div style="font-size: 8px; margin-bottom: 6px;">
+        <b>Polvere Totale:</b> <span id="excel-dust">0</span>
+      </div>
+      <table class="excel-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Rarità</th>
+            <th>Qtà</th>
+          </tr>
+        </thead>
+        <tbody id="excel-table-body"></tbody>
+      </table>
+      <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #3d2616; color: #ffd700; border-color: #ffd700;">TORNA AL LOG</button>
+    </div>
+
   </div>
+</div>
+
+<script>
+  // Script di base per gestire le schermate e attivare gli audio integrati
+  function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+
+  function saveProfileAndGoToPart1() {
+    showScreen('part1');
+  }
+
+  function startApp() {
+    showScreen('part2bis');
+    setTimeout(() => {
+      showScreen('part4'); // Esempio diretto alla parte 4 o parte 3 in base al tuo flusso
+    }, 1500);
+  }
+
+  // Esempio di utilizzo dei nuovi file audio all'interno di Parte 4
+  function playStrappaSound() {
+    const audio = document.getElementById('audio-strappa');
+    if (audio) { audio.currentTime = 0; audio.play().catch(e => console.log(e)); }
+  }
+
+  function playSwushSound() {
+    const audio = document.getElementById('audio-swush');
+    if (audio) { audio.currentTime = 0; audio.play().catch(e => console.log(e)); }
+  }
+
+  function turnOff() {
+    showScreen('part6');
+  }
+
+  function restart() {
+    showScreen('part0');
+  }
+</script>
 
-  <script>
-    const SUPABASE_URL = 'https://tssgkiytaxmcrodrcrpu.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_3JHORvzXFoBh7XVVuSqgTg__ezQdQMa';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let forcedRarity = null;
-    let audioCtx = null;
-    
-    function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
-
-    async function testSupabaseConnection() {
-      console.log("=== INIZIO TEST SUPABASE ===");
-      try {
-        const { data, error } = await _supabase.from('user_state').select('*').limit(1);
-        if (error) {
-          console.error("Errore di connessione Supabase:", error);
-          alert("Errore Supabase! Controlla la console F12.");
-        } else {
-          console.log("Connessione riuscita! Dati letti:", data);
-          alert("Connessione a Supabase OK! Guarda la console F12 per i dettagli.");
-        }
-      } catch (err) {
-        console.error("Eccezione durante il test:", err);
-        alert("Eccezione di rete o configurazione. Guarda la console F12.");
-      }
-      console.log("=== FINE TEST SUPABASE ===");
-    }
-
-    function playHighVolumeSound(type) {
-      try {
-        initAudio();
-        const now = audioCtx.currentTime;
-
-        const masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0.8, now);
-        masterGain.connect(audioCtx.destination);
-
-        if (type === 'gb_boot') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(587.33, now);
-          osc.frequency.setValueAtTime(880.00, now + 0.08);
-          
-          gain.gain.setValueAtTime(0.4, now);
-          gain.gain.setValueAtTime(0.4, now + 0.3);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-
-          osc.connect(gain);
-          gain.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.6);
-        } else if (type === 'start') {
-          [130.81, 196.00, 261.63, 392.00, 523.25].forEach((freq, i) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(freq, now + i * 0.04);
-            gain.gain.setValueAtTime(0.3, now + i * 0.04);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-            osc.connect(gain);
-            gain.connect(masterGain);
-            osc.start(now + i * 0.04);
-            osc.stop(now + 0.7);
-          });
-        } else if (type === 'laser') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          const filter = audioCtx.createBiquadFilter();
-          
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.1);
-          osc.frequency.exponentialRampToValueAtTime(80, now + 0.45);
-
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(4000, now);
-
-          gain.gain.setValueAtTime(0.5, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(masterGain);
-          
-          osc.start(now);
-          osc.stop(now + 0.45);
-        } else if (type === 'off') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(400, now);
-          osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
-          gain.gain.setValueAtTime(0.6, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          osc.connect(gain);
-          gain.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.4);
-        }
-      } catch(e) {}
-    }
-
-    async function resetStreakTo1() {
-      try {
-        await _supabase.from('user_state').update({ streak_day: 1, months_completed: 0 }).eq('id', 1);
-        console.log("Streak resettata a 1");
-        alert('Streak resettata al Giorno 1!');
-      } catch(e) {
-        console.error("Errore reset streak:", e);
-        alert('Errore: ' + e.message);
-      }
-    }
-
-    let isDrawingLaser = false;
-    let laserPoints = [];
-    let packSliced = false;
-    let dragObj = null;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let dragType = '';
-    let startXPoint = 0;
-    let startYPoint = 0;
-
-    function setupLaserCanvas() {
-      const canvas = document.getElementById('laser-canvas');
-      const pack = document.getElementById('booster-pack');
-      if (canvas && pack) {
-        canvas.width = pack.offsetWidth;
-        canvas.height = pack.offsetHeight;
-      }
-    }
-
-    document.addEventListener('mousedown', handleStart);
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchstart', handleStart, {passive: false});
-    document.addEventListener('touchmove', handleMove, {passive: false});
-    document.addEventListener('touchend', handleEnd);
-
-    function handleStart(e) {
-      const pack = document.getElementById('booster-pack');
-      const cardTarget = e.target.closest('.card-wrapper');
-
-      if (cardTarget && !cardTarget.classList.contains('card-swiped')) {
-        dragType = 'card';
-        dragObj = cardTarget;
-        dragObj.classList.add('dragging');
-        dragObj.classList.remove('snap-back');
-        dragStartX = e.clientX || e.touches[0].clientX;
-        dragStartY = e.clientY || e.touches[0].clientY;
-        return;
-      }
-
-      if (!pack) return;
-      const rect = pack.getBoundingClientRect();
-      let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
-      let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-
-      if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
-        isDrawingLaser = true;
-        startXPoint = clientX - rect.left;
-        startYPoint = clientY - rect.top;
-        laserPoints = [{ x: startXPoint, y: startYPoint }];
-        playHighVolumeSound('laser');
-      }
-    }
-
-    function handleMove(e) {
-      if (e.cancelable && (isDrawingLaser || dragObj)) e.preventDefault();
-      
-      if (isDrawingLaser && !packSliced) {
-        const pack = document.getElementById('booster-pack');
-        if (!pack) return;
-        const rect = pack.getBoundingClientRect();
-        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
-        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-
-        if (clientX !== null && clientY !== null) {
-          let currentLocalX = clientX - rect.left;
-          let currentLocalY = clientY - rect.top;
-          laserPoints.push({ x: currentLocalX, y: currentLocalY });
-          drawLightningTrail();
-
-          let distanceX = Math.abs(currentLocalX - startXPoint);
-          let distanceY = Math.abs(currentLocalY - startYPoint);
-          
-          if (distanceX >= rect.width * 0.9 || distanceY >= rect.height * 0.9) {
-            packSliced = true;
-            isDrawingLaser = false;
-            pack.classList.add('sliced-open');
-            playHighVolumeSound('laser');
-
-            setTimeout(() => {
-              const bContainer = document.getElementById('booster-container');
-              const cArea = document.getElementById('cards-area');
-              if (bContainer) bContainer.style.display = 'none';
-              if (cArea) cArea.style.display = 'flex';
-              clearLaserCanvas();
-            }, 700);
-          }
-        }
-      } else if (dragType === 'card' && dragObj) {
-        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-        if (clientY !== null) {
-          let dy = clientY - dragStartY;
-          if (dy > 0) dy = 0;
-          dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
-        }
-      }
-    }
-
-    function handleEnd(e) {
-      if (isDrawingLaser) {
-        isDrawingLaser = false;
-        clearLaserCanvas();
-      }
-      if (dragType === 'card' && dragObj) {
-        dragObj.classList.remove('dragging');
-        let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-        let dy = clientY - dragStartY;
-
-        if (dy < -80) {
-          dragObj.style.transform = '';
-          performSwipe(dragObj);
-        } else {
-          dragObj.classList.add('snap-back');
-          dragObj.style.transform = 'translateY(0px) rotate(0deg)';
-        }
-        dragObj = null;
-        dragType = '';
-      }
-    }
-
-    function drawLightningTrail() {
-      const canvas = document.getElementById('laser-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (laserPoints.length < 2) return;
-
-      ctx.beginPath();
-      ctx.moveTo(laserPoints[0].x, laserPoints[0].y);
-      
-      for (let i = 1; i < laserPoints.length; i++) {
-        let p = laserPoints[i];
-        let jitterX = p.x + (Math.random() * 8 - 4);
-        let jitterY = p.y + (Math.random() * 8 - 4);
-        ctx.lineTo(jitterX, jitterY);
-      }
-      
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = '#00ffff';
-      ctx.shadowBlur = 20;
-      ctx.stroke();
-
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    function clearLaserCanvas() {
-      const canvas = document.getElementById('laser-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      laserPoints = [];
-    }
-
-    let userData = null;
-    let drawnCards = [];
-    let sessionSummary = [];
-    let cardsSwipedCount = 0;
-    
-    let cutsceneData = null;
-    let cutsceneTimer = null;
-    let cutsceneTime = 0;
-    let isDialogueActive = false;
-    let triggeredEvents = new Set();
-    let isResourcesLoaded = false;
-
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById(id);
-      if (target) target.classList.add('active');
-    }
-
-    async function saveProfileAndGoToPart1() {
-      const uName = document.getElementById('login-username').value.trim() || 'Rosso';
-      const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico';
-      try {
-        await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
-      } catch(e) {
-        console.error("Errore salvataggio profilo:", e);
-      }
-      showScreen('part1');
-    }
-
-    function startApp() {
-      playHighVolumeSound('gb_boot');
-      const p2 = document.getElementById('part2');
-      showScreen('part2');
-      p2.classList.add('turning-on');
-      setTimeout(() => { 
-        p2.classList.remove('turning-on');
-        goToPart2Bis(); 
-      }, 1500);
-    }
-
-    async function goToPart2Bis() {
-      showScreen('part2bis');
-      isResourcesLoaded = false;
-      
-      const textEl = document.getElementById('preload-text');
-      const wrapperEl = document.getElementById('pokeball-wrapper');
-      textEl.innerText = "CARICAMENTO DATI...";
-      wrapperEl.classList.add('shaking');
-      wrapperEl.classList.remove('ready');
-
-      const minTimer = new Promise(resolve => setTimeout(resolve, 2000));
-
-      const dataFetchPromise = (async () => {
-        try {
-          const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
-          if (error) console.error("Errore recupero user_state:", error);
-          userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
-        } catch(e) {
-          userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
-        }
-
-        const fileName = `cutscenes/giorno${userData.streak_day}.json`;
-        try {
-          const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
-          const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-          if (response.ok) cutsceneData = await response.json();
-          else cutsceneData = null;
-        } catch(e) {
-          cutsceneData = null;
-        }
-
-        if (!cutsceneData) {
-          cutsceneData = {
-            background: '',
-            music: '',
-            actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: `Giorno ${userData.streak_day}: Bentornato!`, start: 0, duration: 3 }]
-          };
-        }
-
-        const promises = [];
-
-        if (cutsceneData.background) {
-          const bgUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}`;
-          promises.push(new Promise((resolveImg) => {
-            const img = new Image();
-            img.src = bgUrl;
-            img.onload = resolveImg;
-            img.onerror = resolveImg;
-          }));
-        }
-
-        if (cutsceneData.music) {
-          const musicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
-          promises.push(new Promise((resolveAudio) => {
-            const audio = document.getElementById('gb-music');
-            audio.src = musicUrl;
-            audio.load();
-            resolveAudio();
-          }));
-        }
-
-        (cutsceneData.actors || []).forEach(actor => {
-          let assetUrl = userData.avatar_url;
-          if (actor.asset) {
-            assetUrl = actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
-          }
-          promises.push(new Promise((resolveActor) => {
-            const img = new Image();
-            img.src = assetUrl;
-            img.onload = resolveActor;
-            img.onerror = resolveActor;
-          }));
-        });
-
-        await Promise.all(promises);
-      })();
-
-      await Promise.all([dataFetchPromise, minTimer]);
-
-      isResourcesLoaded = true;
-      textEl.innerText = "TOCCA LA POKÉBALL!";
-      wrapperEl.classList.remove('shaking');
-      wrapperEl.classList.add('ready');
-    }
-
-    document.getElementById('pokeball-wrapper').addEventListener('click', () => {
-      if (!isResourcesLoaded) return;
-      
-      isResourcesLoaded = false;
-      playHighVolumeSound('laser');
-      
-      const pokeballEl = document.getElementById('main-pokeball');
-      const textEl = document.getElementById('preload-text');
-      const wrapperEl = document.getElementById('pokeball-wrapper');
-      
-      textEl.innerText = "";
-      wrapperEl.classList.remove('ready');
-      pokeballEl.classList.add('opening');
-
-      setTimeout(() => {
-        pokeballEl.classList.remove('opening');
-        checkAndGoToPart3Ready();
-      }, 600);
-    });
-
-    function checkAndGoToPart3Ready() {
-      showScreen('part3');
-
-      document.getElementById('val-streak').innerText = userData.streak_day;
-      document.getElementById('val-months').innerText = userData.months_completed;
-      document.getElementById('val-dolls').innerText = userData.dolls_count;
-      document.getElementById('val-dust').innerText = userData.dust_count;
-
-      startCutscenePlayback();
-    }
-
-    function startCutscenePlayback() {
-      const bgEl = document.getElementById('cutscene-bg');
-      const audioEl = document.getElementById('gb-music');
-      const spritesLayer = document.getElementById('sprites-layer');
-
-      spritesLayer.innerHTML = '';
-      triggeredEvents.clear();
-      cutsceneTime = 0;
-      isDialogueActive = false;
-
-      if (cutsceneData.background) {
-        bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
-      } else {
-        bgEl.style.backgroundImage = 'none';
-      }
-
-      if (cutsceneData.music) {
-        audioEl.play().catch(() => {});
-      } else {
-        audioEl.pause();
-      }
-
-      const stage = document.getElementById('screen-wrapper');
-      const baseWidth = 480;
-      const baseHeight = 270;
-      const currentWidth = stage.clientWidth || 480;
-      const currentHeight = stage.clientHeight || 270;
-      const scaleX = currentWidth / baseWidth;
-      const scaleY = currentHeight / baseHeight;
-
-      const actorElements = {};
-      const actorCurrentPos = {};
-
-      (cutsceneData.actors || []).forEach(actor => {
-        const img = document.createElement('img');
-        img.className = 'actor-sprite';
-        img.id = `actor-sprite-${actor.id}`;
-        
-        let assetUrl = userData.avatar_url;
-        if (actor.asset) {
-          if (actor.asset.startsWith('http')) {
-            assetUrl = actor.asset;
-          } else {
-            assetUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`;
-          }
-        }
-        img.src = assetUrl;
-
-        const startX = actor.pos ? actor.pos[0] : 100;
-        const startY = actor.pos ? actor.pos[1] : 100;
-        actorCurrentPos[actor.id] = { x: startX, y: startY };
-
-        img.style.left = `${startX * scaleX}px`;
-        img.style.top = `${startY * scaleY}px`;
-        img.style.width = `${48 * scaleX}px`;
-        img.style.height = `${48 * scaleY}px`;
-        spritesLayer.appendChild(img);
-        actorElements[actor.id] = img;
-      });
-
-      if (cutsceneTimer) clearInterval(cutsceneTimer);
-
-      cutsceneTimer = setInterval(() => {
-        if (isDialogueActive) return;
-
-        (cutsceneData.events || []).forEach(ev => {
-          if (ev.type === 'move') {
-            const elapsed = cutsceneTime - ev.start;
-            if (elapsed >= 0 && elapsed <= ev.duration) {
-              const progress = Math.min(elapsed / ev.duration, 1.0);
-              
-              const targetActorKey = Object.keys(actorElements).find(k => {
-                const actorObj = (cutsceneData.actors || []).find(a => a.id === k);
-                if (!actorObj) return false;
-                const searchKey = String(ev.actor).toLowerCase();
-                return (
-                  k.toLowerCase() === searchKey ||
-                  (actorObj.name && actorObj.name.toLowerCase() === searchKey) ||
-                  (actorObj.type && actorObj.type.toLowerCase() === searchKey)
-                );
-              });
-
-              if (targetActorKey) {
-                const defaultPos = actorCurrentPos[targetActorKey] || { x: 100, y: 100 };
-                const fromCoords = ev.from || [defaultPos.x, defaultPos.y];
-                const toCoords = ev.to || [defaultPos.x + 50, defaultPos.y];
-
-                const currentX = fromCoords[0] + (toCoords[0] - fromCoords[0]) * progress;
-                const currentY = fromCoords[1] + (toCoords[1] - fromCoords[1]) * progress;
-                actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
-                
-                const el = actorElements[targetActorKey];
-                if (el) {
-                  el.style.left = `${currentX * scaleX}px`;
-                  el.style.top = `${currentY * scaleY}px`;
-                }
-              }
-            }
-          }
-
-          if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
-            if (ev.type === 'dialogue') {
-              triggeredEvents.add(ev.id);
-              isDialogueActive = true;
-              document.getElementById('speaker-name').innerText = ev.speaker;
-              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Allenatore');
-              document.getElementById('dialogue-box').style.display = 'block';
-            }
-          }
-        });
-
-        cutsceneTime += 0.05;
-        if (cutsceneTime >= 10.0) {
-          clearInterval(cutsceneTimer);
-          document.getElementById('gb-music').pause();
-          goToPart4();
-        }
-      }, 50);
-    }
-
-    function handleCutsceneClick() {
-      if (isDialogueActive) {
-        document.getElementById('dialogue-box').style.display = 'none';
-        isDialogueActive = false;
-      }
-    }
-
-    async function goToPart4() {
-      showScreen('part4');
-      
-      document.getElementById('booster-container').style.display = 'flex';
-      document.getElementById('cards-area').style.display = 'none';
-      document.getElementById('part4-summary').style.display = 'none';
-      
-      const pack = document.getElementById('booster-pack');
-      pack.classList.remove('sliced-open');
-      packSliced = false;
-      setTimeout(setupLaserCanvas, 50);
-
-      const container = document.getElementById('cards-stack');
-      container.innerHTML = '';
-      cardsSwipedCount = 0;
-
-      let allCards = [];
-      let ownedIds = [];
-
-      try {
-        const { data: cData } = await _supabase.from('cards').select('*');
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if (cData) allCards = cData;
-        if (iData) ownedIds = iData.map(i => i.card_id);
-      } catch(e) {
-        console.error("Errore fetch carte:", e);
-      }
-
-      if (allCards.length === 0) {
-        allCards = [{ id: 1, name: 'Tavoletta Antica', rarity: 'Comune', image_url: 'https://picsum.photos/200/280' }];
-      }
-
-      const cardsByRarity = {
-        'Comune': allCards.filter(c => c.rarity === 'Comune'),
-        'Rara': allCards.filter(c => c.rarity === 'Rara'),
-        'Epica': allCards.filter(c => c.rarity === 'Epica'),
-        'Leggendaria': allCards.filter(c => c.rarity === 'Leggendaria')
-      };
-
-      function getRandomCardByRarity() {
-        if (forcedRarity && cardsByRarity[forcedRarity]?.length > 0) {
-          return cardsByRarity[forcedRarity][Math.floor(Math.random() * cardsByRarity[forcedRarity].length)];
-        }
-        const rand = Math.random() * 100;
-        let targetRarity = rand < 5 ? 'Leggendaria' : rand < 15 ? 'Epica' : rand < 40 ? 'Rara' : 'Comune';
-        let pool = cardsByRarity[targetRarity];
-        if (!pool || pool.length === 0) pool = allCards;
-        return pool[Math.floor(Math.random() * pool.length)];
-      }
-
-      drawnCards = [];
-      for (let i = 0; i < 4; i++) {
-        const randomCard = getRandomCardByRarity();
-        const isDuplicate = ownedIds.includes(randomCard.id);
-        drawnCards.push({ ...randomCard, isDuplicate });
-      }
-
-      drawnCards.forEach((card, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'card-wrapper';
-        wrapper.style.zIndex = 4 - index; 
-        
-        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
-        
-        let rarityCssClass = 'comune';
-        let descMessage = 'Carta Comune: Semplice, un reperto basilare.';
-        let rLower = (card.rarity || '').toLowerCase();
-        
-        if (rLower.includes('leg') || rLower.includes('leggendaria')) {
-          rarityCssClass = 'leggendaria';
-          descMessage = 'Carta Leggendaria: Dorata, baciata dal sole con bagliori e scintille.';
-        } else if (rLower.includes('epi') || rLower.includes('ultra')) {
-          rarityCssClass = 'ultra-rara';
-          descMessage = 'Carta Ultra Rara: Foil arcobaleno cangiante in movimento!';
-        } else if (rLower.includes('rar') || rLower.includes('rara')) {
-          rarityCssClass = 'rara';
-          descMessage = 'Carta Rara: Cupo e misterioso reperto di valore.';
-        } else if (rLower.includes('non') || rLower.includes('non-comune')) {
-          rarityCssClass = 'non-comune';
-          descMessage = 'Carta Non Comune: Più resistente e difficile da trovare.';
-        }
-
-        let sparkleHTML = rarityCssClass === 'leggendaria' ? `
-          <div class="sparkle-container">
-            <div class="sparkle"></div>
-            <div class="sparkle"></div>
-            <div class="sparkle"></div>
-            <div class="sparkle"></div>
-          </div>` : '';
-
-        wrapper.innerHTML = `
-          <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
-            ${sparkleHTML}
-            <div class="card-inner-frame">
-              <div class="title-container">
-                <svg class="unown-svg-title" viewBox="0 0 280 45" xmlns="http://www.w3.org/2000/svg">
-                  <g fill="none" stroke="#d1b280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <g transform="translate(10, 5)"><path d="M4 28 L4 12 L16 24 L16 8"/><circle cx="10" cy="18" r="4" fill="#d1b280"/></g>
-                    <g transform="translate(38, 5)"><circle cx="10" cy="18" r="9"/><circle cx="10" cy="18" r="3" fill="#d1b280"/></g>
-                    <g transform="translate(66, 5)"><path d="M3 28 L3 12 L9 20 L15 12 L15 28"/><circle cx="9" cy="17" r="3.5" fill="#d1b280"/></g>
-                    <g transform="translate(94, 5)"><path d="M14 28 L4 28 L4 8 L14 8"/><path d="M4 18 L11 18"/><circle cx="9" cy="18" r="3.5" fill="#d1b280"/></g>
-                    <g transform="translate(132, 5)"><circle cx="10" cy="14" r="8"/><path d="M10 22 L10 30"/><circle cx="10" cy="14" r="3" fill="#d1b280"/></g>
-                    <g transform="translate(160, 5)"><circle cx="10" cy="18" r="9"/><circle cx="10" cy="18" r="3" fill="#d1b280"/></g>
-                    <g transform="translate(188, 5)"><path d="M10 8 L10 28"/><path d="M4 12 L14 22"/><path d="M4 24 L14 14"/><circle cx="10" cy="18" r="3" fill="#d1b280"/></g>
-                    <g transform="translate(216, 5)"><path d="M14 28 L4 28 L4 8 L14 8"/><path d="M4 18 L11 18"/><path d="M7 3 L11 5"/><circle cx="9" cy="18" r="3.5" fill="#d1b280"/></g>
-                    <g transform="translate(244, 5)"><path d="M3 28 L3 12 L9 20 L15 12 L15 28"/><circle cx="9" cy="17" r="3.5" fill="#d1b280"/></g>
-                  </g>
-                </svg>
-              </div>
-              <div class="card-image-box">
-                <img src="${card.image_url}" alt="${card.name}">
-              </div>
-              <div class="card-description-box">
-                <span class="card-description-text">"${card.name}: ${descMessage}"</span>
-              </div>
-            </div>
-            ${dupHTML}
-          </div>
-        `;
-        container.appendChild(wrapper);
-      });
-    }
-
-    function generateFireflies() {
-      const container = document.getElementById('sparkles-container');
-      if (!container) return;
-      container.innerHTML = '';
-      for (let i = 0; i < 25; i++) {
-        const f = document.createElement('div');
-        f.className = 'firefly';
-        f.style.left = (40 + Math.random() * 20) + '%';
-        f.style.top = (40 + Math.random() * 20) + '%';
-        f.style.setProperty('--tx', (Math.random() * 250 - 125) + 'px');
-        f.style.setProperty('--ty', (Math.random() * 250 - 125) + 'px');
-        f.style.animationDelay = (Math.random() * 0.5) + 's';
-        container.appendChild(f);
-      }
-    }
-
-    function performSwipe(wrapper) {
-      if (wrapper.classList.contains('card-swiped')) return;
-      playHighVolumeSound('laser');
-      generateFireflies();
-      wrapper.classList.add('card-swiped');
-      cardsSwipedCount++;
-
-      if (cardsSwipedCount === 4) {
-        setTimeout(() => {
-          const cArea = document.getElementById('cards-area');
-          if (cArea) cArea.style.display = 'none';
-          showPart4Summary();
-        }, 600);
-      }
-    }
-
-    async function showPart4Summary() {
-      const summaryArea = document.getElementById('part4-summary');
-      const tbody = document.getElementById('part4-summary-body');
-      tbody.innerHTML = '';
-
-      let inventory = [];
-      try {
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if (iData) inventory = iData;
-      } catch(e) {
-        console.error("Errore fetch inventario:", e);
-      }
-
-      const counts = {};
-      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
-
-      const tempCounts = { ...counts };
-      drawnCards.forEach(card => {
-        if (!card.isDuplicate) tempCounts[card.id] = (tempCounts[card.id] || 0) + 1;
-      });
-
-      drawnCards.forEach(card => {
-        let note = card.isDuplicate ? '+10 Polvere' : 'Nuova!';
-        let color = card.isDuplicate ? '#8b0000' : '#2e8b57';
-        let totalQty = tempCounts[card.id] || 1;
-        
-        tbody.innerHTML += `
-          <tr>
-            <td>${card.name}</td>
-            <td>${card.rarity}</td>
-            <td><b>${totalQty}</b></td>
-            <td style="color: ${color}; font-weight: bold; font-size: 6px;">${note}</td>
-          </tr>
-        `;
-      });
-
-      summaryArea.style.display = 'block';
-    }
-
-    async function finalizePackAndGoToPart5() {
-      for (const card of drawnCards) {
-        if (card.isDuplicate) {
-          userData.dust_count += 10;
-          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
-        } else {
-          try {
-            await _supabase.from('user_inventory').insert({ card_id: card.id });
-          } catch(e) {
-            console.error("Errore inserimento inventario:", e);
-          }
-          sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
-        }
-      }
-
-      let nextDay = userData.streak_day + 1;
-      let nextMonths = userData.months_completed;
-      if (userData.streak_day >= 30) {
-        nextDay = 1;
-        nextMonths += 1;
-        sessionSummary.push("Mese completato!");
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-      try {
-        await _supabase.from('user_state').update({
-          streak_day: nextDay,
-          months_completed: nextMonths,
-          dolls_count: userData.dolls_count,
-          dust_count: userData.dust_count,
-          last_claim_date: today
-        }).eq('id', 1);
-      } catch(e) {
-        console.error("Errore aggiornamento user_state:", e);
-      }
-
-      document.getElementById('summary-content').innerHTML = sessionSummary.map(item => `<p style="margin-bottom: 2px;">- ${item}</p>`).join('');
-      showScreen('part5');
-    }
-
-    function turnOff() {
-      playHighVolumeSound('off');
-      showScreen('part2');
-      setTimeout(() => { showScreen('part6'); }, 1200);
-    }
-
-    function restart() {
-      sessionSummary = [];
-      forcedRarity = null;
-      showScreen('part0');
-    }
-
-    async function openAlbum() {
-      showScreen('part-album');
-      document.getElementById('excel-dust').innerText = userData ? userData.dust_count : 0;
-
-      let cards = [];
-      let inventory = [];
-      try {
-        const { data: cData } = await _supabase.from('cards').select('*');
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if(cData) cards = cData;
-        if(iData) inventory = iData;
-      } catch(e) {
-        console.error("Errore apertura album:", e);
-      }
-
-      const counts = {};
-      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
-
-      const tbody = document.getElementById('excel-table-body');
-      tbody.innerHTML = '';
-
-      cards.forEach(card => {
-        const qty = counts[card.id] || 0;
-        tbody.innerHTML += `
-          <tr>
-            <td>${card.id}</td>
-            <td>${card.name}</td>
-            <td>${card.rarity}</td>
-            <td style="font-weight:${qty > 0 ? 'bold' : 'normal'}">${qty}</td>
-          </tr>
-        `;
-      });
-    }
-  </script>
 </body>
 </html>
