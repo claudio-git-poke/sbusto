@@ -7,6 +7,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    @font-face {
+      font-family: 'UnownFont';
+      src: url('https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/font/unown/Unown.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { 
       background: #111; 
@@ -267,10 +274,35 @@
       display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
     }
 
-    .card-image-box { position: absolute; top: 34px; left: 6px; right: 6px; height: 105px; background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); border: 2px solid #5c3d29; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; }
+    /* Immagine ridotta per lasciare più spazio al testo descrittivo in basso */
+    .card-image-box { 
+      position: absolute; top: 34px; left: 6px; right: 6px; height: 65px; 
+      background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); 
+      border: 2px solid #5c3d29; border-radius: 4px; 
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); 
+      display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; 
+    }
     .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
-    .card-description-box { position: absolute; bottom: 6px; left: 6px; right: 6px; height: 48px; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 4px; padding: 4px 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 2; }
-    .card-description-text { font-family: 'Georgia', serif; font-size: 5px; color: #3d2817; text-align: center; line-height: 1.3; font-style: italic; }
+    
+    /* Box descrizione ingrandito, font ingrandito e scrollbar interna */
+    .card-description-box { 
+      position: absolute; bottom: 6px; left: 6px; right: 6px; top: 103px; 
+      background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); 
+      border-radius: 4px; padding: 5px 6px; box-sizing: border-box; 
+      display: flex; align-items: flex-start; justify-content: flex-start; z-index: 2; 
+      overflow-y: auto; 
+    }
+    .card-description-text { 
+      font-family: 'Georgia', serif; 
+      font-size: 7.5px; /* Carattere aumentato in proporzione */
+      color: #3d2817; 
+      text-align: left; 
+      line-height: 1.35; 
+      font-style: italic; 
+      width: 100%;
+      word-break: break-word;
+    }
+
     .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
 
     .card-glow-reveal { animation: cardGlowFade 1.5s ease-out forwards; }
@@ -972,7 +1004,6 @@
       container.innerHTML = '';
       cardsSwipedCount = 0;
 
-      // Nomi effettivi delle cartelle su Supabase come da richiesta
       const rarityConfig = [
         { label: 'comuni', name: 'Comune' },
         { label: 'non comuni', name: 'Non Comune' },
@@ -981,12 +1012,11 @@
         { label: 'leggendarie', name: 'Leggendaria' }
       ];
 
-      // Percentuali esatte per ciascuna delle 4 carte del pacchetto
       const slotProbabilities = [
-        { 'comuni': 90, 'non comuni': 10 },                               // 1° carta
-        { 'comuni': 80, 'non comuni': 20 },                               // 2° carta
-        { 'comuni': 50, 'non comuni': 30, 'rare': 19, 'ultra rare': 1 },    // 3° carta
-        { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 } // 4° carta
+        { 'comuni': 90, 'non comuni': 10 },                               
+        { 'comuni': 80, 'non comuni': 20 },                               
+        { 'comuni': 50, 'non comuni': 30, 'rare': 19, 'ultra rare': 1 },    
+        { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 } 
       ];
 
       const foldersContent = {};
@@ -1060,7 +1090,6 @@
         let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
         let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultra Rara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
 
-        // Preleva l'immagine PNG e il testo TXT dalla rispettiva cartella del bucket
         const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${card.folder}/${card.file_name}.png`;
         const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${card.folder}/${card.file_name}.txt`;
 
@@ -1068,7 +1097,8 @@
           <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
             <div class="card-inner-frame">
               <div class="title-container">
-                <span style="font-size: 6px; color: #ffd700;">${card.name}</span>
+                <!-- Applicato il font Unown personalizzato -->
+                <span style="font-size: 7px; color: #ffd700; font-family: 'UnownFont', monospace;">${card.name}</span>
               </div>
               <div class="card-image-box">
                 <img id="card-img-${index}" src="${imageUrl}" alt="${card.name}" onerror="this.src='https://picsum.photos/200/280'">
