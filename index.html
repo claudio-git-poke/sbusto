@@ -904,9 +904,12 @@
         audioEl.play().catch(() => {});
       }
 
-      // Risoluzione nativa di riferimento dell'editor
-      const baseWidth = 480;
-      const baseHeight = 270;
+      // Estrazione parametri globali dal JSON con fallback sicuri ai valori standard 480x270
+      const meta = cutsceneData.meta || {};
+      const baseWidth = meta.stageBaseWidth || 480;
+      const baseHeight = meta.stageBaseHeight || 270;
+      const spriteSize = meta.spriteBaseSize || 48;
+      const globalScale = (cutsceneData.spriteScalePercentage !== undefined) ? (cutsceneData.spriteScalePercentage / 100) : 1.0;
 
       const actorElements = {};
       const actorCurrentPos = {};
@@ -917,20 +920,29 @@
         let assetUrl = actor.asset ? (actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`) : userData.avatar_url;
         img.src = assetUrl;
 
-        const startX = actor.pos ? actor.pos[0] : 100;
-        const startY = actor.pos ? actor.pos[1] : 100;
+        // Gestione delle posizioni supportando sia il vettore nativo 'pos' che le percentuali 'posPercentage'[cite: 4]
+        let startX = 100, startY = 100;
+        if (actor.pos && Array.isArray(actor.pos)) {
+          startX = actor.pos[0];
+          startY = actor.pos[1];
+        } else if (actor.posPercentage && Array.isArray(actor.posPercentage)) {
+          startX = (actor.posPercentage[0] / 100) * baseWidth;
+          startY = (actor.posPercentage[1] / 100) * baseHeight;
+        }
+        
         actorCurrentPos[actor.id] = { x: startX, y: startY };
 
-        // Posizionamento e dimensioni basati in percentuale rispetto alla risoluzione nativa 480x270
+        // Posizionamento in percentuale scalato in base ai metadati del canvas[cite: 4]
         img.style.left = `${(startX / baseWidth) * 100}%`;
         img.style.top = `${(startY / baseHeight) * 100}%`;
-        img.style.width = `${(48 / baseWidth) * 100}%`;
-        img.style.height = `${(48 / baseHeight) * 100}%`;
+        img.style.width = `${((spriteSize * globalScale) / baseWidth) * 100}%`;
+        img.style.height = `${((spriteSize * globalScale) / baseHeight) * 100}%`;
+        
         spritesLayer.appendChild(img);
         actorElements[actor.id] = img;
       });
 
-      // Calcolo dinamico della durata basato sull'ultimo evento (con fallback a 10.0s se non specificato)
+      // Calcolo dinamico della durata totale basato sulla proprietà del JSON o sull'evento più lungo
       let maxEventEnd = 10.0;
       if (cutsceneData && typeof cutsceneData.duration === 'number' && !isNaN(cutsceneData.duration)) {
         maxEventEnd = cutsceneData.duration;
@@ -957,8 +969,21 @@
 
               if (targetActorKey) {
                 const defaultPos = actorCurrentPos[targetActorKey] || { x: 100, y: 100 };
-                const fromCoords = ev.from || [defaultPos.x, defaultPos.y];
-                const toCoords = ev.to || [defaultPos.x + 50, defaultPos.y];
+                
+                // Supporto nativo per coordinate assolute 'from'/'to' oppure percentuali 'fromPercentage'/'toPercentage'[cite: 4]
+                let fromCoords = [defaultPos.x, defaultPos.y];
+                if (ev.from && Array.isArray(ev.from)) {
+                  fromCoords = ev.from;
+                } else if (ev.fromPercentage && Array.isArray(ev.fromPercentage)) {
+                  fromCoords = [(ev.fromPercentage[0] / 100) * baseWidth, (ev.fromPercentage[1] / 100) * baseHeight];
+                }
+
+                let toCoords = [defaultPos.x + 50, defaultPos.y];
+                if (ev.to && Array.isArray(ev.to)) {
+                  toCoords = ev.to;
+                } else if (ev.toPercentage && Array.isArray(ev.toPercentage)) {
+                  toCoords = [(ev.toPercentage[0] / 100) * baseWidth, (ev.toPercentage[1] / 100) * baseHeight];
+                }
 
                 const currentX = fromCoords[0] + (toCoords[0] - fromCoords[0]) * progress;
                 const currentY = fromCoords[1] + (toCoords[1] - fromCoords[1]) * progress;
