@@ -449,6 +449,12 @@
     let forcedRarity = null;
     let audioCtx = null;
     
+    // Variabili globali cutscene per ispezione console F12
+    let actorElements = {};
+    let actorCurrentPos = {};
+    let cutsceneTime = 0;
+    let cutsceneTimer = null;
+    
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -782,8 +788,6 @@
     let sessionSummary = [];
     let cardsSwipedCount = 0;
     let cutsceneData = null;
-    let cutsceneTimer = null;
-    let cutsceneTime = 0;
     let isDialogueActive = false;
     let triggeredEvents = new Set();
     let isResourcesLoaded = false;
@@ -894,6 +898,8 @@
       triggeredEvents.clear();
       cutsceneTime = 0;
       isDialogueActive = false;
+      actorElements = {};
+      actorCurrentPos = {};
 
       if (cutsceneData.background) {
         bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
@@ -910,9 +916,6 @@
       const baseHeight = meta.stageBaseHeight || 270;
       const spriteSize = meta.spriteBaseSize || 48;
       const globalScale = (cutsceneData.spriteScalePercentage !== undefined) ? (cutsceneData.spriteScalePercentage / 100) : 1.0;
-
-      const actorElements = {};
-      const actorCurrentPos = {};
 
       (cutsceneData.actors || []).forEach(actor => {
         const img = document.createElement('img');
