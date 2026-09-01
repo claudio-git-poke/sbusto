@@ -449,12 +449,6 @@
     let forcedRarity = null;
     let audioCtx = null;
     
-    // Variabili globali cutscene per ispezione console F12
-    let actorElements = {};
-    let actorCurrentPos = {};
-    let cutsceneTime = 0;
-    let cutsceneTimer = null;
-    
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -788,6 +782,8 @@
     let sessionSummary = [];
     let cardsSwipedCount = 0;
     let cutsceneData = null;
+    let cutsceneTimer = null;
+    let cutsceneTime = 0;
     let isDialogueActive = false;
     let triggeredEvents = new Set();
     let isResourcesLoaded = false;
@@ -898,8 +894,6 @@
       triggeredEvents.clear();
       cutsceneTime = 0;
       isDialogueActive = false;
-      actorElements = {};
-      actorCurrentPos = {};
 
       if (cutsceneData.background) {
         bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
@@ -910,12 +904,15 @@
         audioEl.play().catch(() => {});
       }
 
-      // Estrazione parametri globali dal JSON con fallback standard 480x270
+      // Estrazione parametri globali dal JSON con fallback sicuri ai valori standard 480x270
       const meta = cutsceneData.meta || {};
       const baseWidth = meta.stageBaseWidth || 480;
       const baseHeight = meta.stageBaseHeight || 270;
       const spriteSize = meta.spriteBaseSize || 48;
       const globalScale = (cutsceneData.spriteScalePercentage !== undefined) ? (cutsceneData.spriteScalePercentage / 100) : 1.0;
+
+      const actorElements = {};
+      const actorCurrentPos = {};
 
       (cutsceneData.actors || []).forEach(actor => {
         const img = document.createElement('img');
@@ -923,6 +920,7 @@
         let assetUrl = actor.asset ? (actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`) : userData.avatar_url;
         img.src = assetUrl;
 
+        // Gestione delle posizioni supportando sia il vettore nativo 'pos' che le percentuali 'posPercentage'[cite: 4]
         let startX = 100, startY = 100;
         if (actor.pos && Array.isArray(actor.pos)) {
           startX = actor.pos[0];
@@ -934,6 +932,7 @@
         
         actorCurrentPos[actor.id] = { x: startX, y: startY };
 
+        // Posizionamento in percentuale scalato in base ai metadati del canvas[cite: 4]
         img.style.left = `${(startX / baseWidth) * 100}%`;
         img.style.top = `${(startY / baseHeight) * 100}%`;
         img.style.width = `${((spriteSize * globalScale) / baseWidth) * 100}%`;
@@ -943,6 +942,7 @@
         actorElements[actor.id] = img;
       });
 
+      // Calcolo dinamico della durata totale basato sulla proprietà del JSON o sull'evento più lungo
       let maxEventEnd = 10.0;
       if (cutsceneData && typeof cutsceneData.duration === 'number' && !isNaN(cutsceneData.duration)) {
         maxEventEnd = cutsceneData.duration;
@@ -961,21 +961,16 @@
         if (isDialogueActive) return;
 
         (cutsceneData.events || []).forEach(ev => {
-          // LOGICA DI MOVIMENTO AGGIORNATA CON LERP TEMPORALE CORRETTO
           if (ev.type === 'move') {
-            const startTime = ev.start || 0;
-            const duration = ev.duration || 1;
-            
-            // 1. Verifica se l'attore è in movimento nell'intervallo temporale
-            if (cutsceneTime >= startTime && cutsceneTime <= (startTime + duration)) {
-              // 2. Calcolo progresso percentuale (t da 0.0 a 1.0)
-              const progress = Math.min(Math.max((cutsceneTime - startTime) / duration, 0), 1.0);
+            const elapsed = cutsceneTime - ev.start;
+            if (elapsed >= 0 && elapsed <= ev.duration) {
+              const progress = Math.min(elapsed / ev.duration, 1.0);
               const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === String(ev.actor).toLowerCase());
 
               if (targetActorKey) {
                 const defaultPos = actorCurrentPos[targetActorKey] || { x: 100, y: 100 };
                 
-                // 3. Estrazione coordinate di partenza (from / fromPercentage)
+                // Supporto nativo per coordinate assolute 'from'/'to' oppure percentuali 'fromPercentage'/'toPercentage'[cite: 4]
                 let fromCoords = [defaultPos.x, defaultPos.y];
                 if (ev.from && Array.isArray(ev.from)) {
                   fromCoords = ev.from;
@@ -983,7 +978,6 @@
                   fromCoords = [(ev.fromPercentage[0] / 100) * baseWidth, (ev.fromPercentage[1] / 100) * baseHeight];
                 }
 
-                // 4. Estrazione coordinate di arrivo (to / toPercentage)
                 let toCoords = [defaultPos.x + 50, defaultPos.y];
                 if (ev.to && Array.isArray(ev.to)) {
                   toCoords = ev.to;
@@ -991,11 +985,8 @@
                   toCoords = [(ev.toPercentage[0] / 100) * baseWidth, (ev.toPercentage[1] / 100) * baseHeight];
                 }
 
-                // 5. Interpolazione lineare (Lerp) delle coordinate correnti
                 const currentX = fromCoords[0] + (toCoords[0] - fromCoords[0]) * progress;
                 const currentY = fromCoords[1] + (toCoords[1] - fromCoords[1]) * progress;
-                
-                // Salvataggio temporaneo della posizione aggiornata dell'attore
                 actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
                 
                 const el = actorElements[targetActorKey];
