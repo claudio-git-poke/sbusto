@@ -3,1278 +3,992 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GameBoy Streak - Ancient Edition</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <title>Cutscene Studio Pro (16:9)</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    @font-face {
-      font-family: 'UnownFont';
-      src: url('https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/font/unown/Unown.ttf') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-    }
+    :root { --bg: #0f111a; --panel: #1a1d2d; --accent: #7c3aed; --border: #2e334d; --text: #f3f4f6; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 20px; }
+    h1, h3, h4 { margin-top: 0; color: #fff; }
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+    .panel { background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .field { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 0.8em; color: #9ca3af; }
+    input, button, select { padding: 8px; background: #252a41; color: var(--text); border: 1px solid var(--border); border-radius: 4px; }
+    button { cursor: pointer; background: var(--accent); font-weight: bold; border: none; }
+    button:hover { opacity: 0.9; }
+    .btn-select { background: #252a41; border: 1px dashed #4b5563; text-align: left; }
+    .btn-success { background: #10b981; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body { 
-      background: #111; 
+    #auth-screen { max-width: 400px; margin: 80px auto; text-align: center; }
+    
+    .stage-container { 
+      position: relative; 
+      width: 480px; 
+      height: 270px; 
+      background: #000; 
+      border: 2px solid var(--border); 
+      border-radius: 8px; 
+      overflow: hidden; 
+      background-size: cover; 
+      background-position: center; 
+      margin: 0 auto 20px auto; 
+    }
+    
+    .draggable-actor { 
+      position: absolute; 
+      width: 48px; 
+      height: 48px; 
+      cursor: move; 
+      user-select: none; 
       display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      min-height: 100vh; 
-      font-family: 'Press Start 2P', monospace;
-      padding: 10px;
-    }
-
-    #gameboy-frame {
-      width: 100%;
-      max-width: 640px;
-      height: 92vh;
-      max-height: 400px;
-      background: #8b0000;
-      border: 6px solid #1a1a1a;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.3);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      padding: 12px;
-    }
-
-    @media (max-aspect-ratio: 1/1) {
-      #gameboy-frame { max-height: 80vh; }
-    }
-    
-    #frame-label {
-      position: absolute;
-      top: 6px;
-      color: #ffcc00;
-      font-size: 7px;
-      letter-spacing: 1px;
-      text-align: center;
-      text-shadow: 1px 1px #000;
-    }
-
-    #screen-wrapper {
-      width: 100%;
-      height: 100%;
-      aspect-ratio: 16 / 9;
-      background: #000;
-      border: 4px solid #111;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .screen { 
-      width: 100%; 
-      height: 100%; 
-      display: none; 
-      flex-direction: column; 
-      justify-content: center; 
-      align-items: center; 
-      text-align: center; 
-      padding: 12px; 
-      box-sizing: border-box; 
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-    .screen.active { display: flex; }
-
-    #part0 { background: #1a1a1a; color: #fff; font-size: 8px; }
-    #part0 input { font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 6px; margin: 4px 0 8px 0; width: 80%; border: 2px solid #ffcc00; background: #000; color: #ffcc00; }
-
-    #part1 { background: #111; color: #fff; }
-    #part2 { background: #000; }
-    
-    #part2bis { 
-      background: #1a140f; 
-      color: #f4e8c1; 
       flex-direction: column; 
       align-items: center; 
       justify-content: center; 
-      position: absolute;
-      top: 0;
-      left: 0;
+      z-index: 10; 
     }
+    .draggable-actor img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; image-rendering: pixelated; }
+    .actor-label { font-size: 8px; background: rgba(0,0,0,0.7); padding: 1px 3px; border-radius: 3px; margin-top: 1px; white-space: nowrap; }
+
+    #dialogue-overlay { display: none; position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #fff; border-radius: 6px; padding: 12px; color: #fff; z-index: 100; pointer-events: none; }
+    #dialogue-overlay .speaker { font-weight: bold; color: #f59e0b; margin-bottom: 4px; }
+    #dialogue-overlay .text { font-style: normal; }
+    #dialogue-overlay .text.narrator-style { font-style: italic; }
+
+    .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .timeline-wrapper { background: #131625; border: 1px solid var(--border); border-radius: 6px; padding: 10px; position: relative; overflow-x: auto; user-select: none; }
+    .timeline-ruler { display: flex; border-bottom: 1px solid var(--border); padding-bottom: 5px; font-size: 11px; color: #6b7280; }
+    .ruler-mark { flex: 1; border-left: 1px solid #2e334d; padding-left: 4px; min-width: 60px; }
+    .timeline-tracks { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; min-height: 120px; width: 100%; }
     
-    .pokeball-loader-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      cursor: default;
-      transition: transform 0.3s ease;
-      width: 90%;
-    }
+    .track-row { position: relative; height: 36px; background: rgba(255,255,255,0.02); border-radius: 4px; width: 100%; display: flex; align-items: center; }
+    .track-label { width: 100px; font-size: 11px; font-weight: bold; padding-left: 8px; color: #a7f3d0; border-right: 1px solid var(--border); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex-shrink: 0; }
+    .track-content { position: relative; flex: 1; height: 100%; }
+
+    .timeline-block { position: absolute; height: 28px; top: 4px; background: #a855f7; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+    .timeline-block.actor-track { background: #10b981; }
+    .timeline-block.dialogue { background: #f59e0b; }
+    .timeline-block.move { background: #3b82f6; }
+
+    .resizer { position: absolute; top: 0; width: 8px; height: 100%; cursor: e-resize; background: rgba(0,0,0,0.3); }
+    .resizer.right { right: 0; border-radius: 0 4px 4px 0; }
+    .resizer.left { left: 0; border-radius: 4px 0 0 4px; }
     
-    .pokeball-loader-container.ready { cursor: pointer; }
-    .pokeball-loader-container.shaking .pokeball { animation: pokeballWobble 0.8s infinite ease-in-out; }
-
-    @keyframes pokeballWobble {
-      0% { transform: rotate(0deg); }
-      15% { transform: rotate(-15deg); }
-      30% { transform: rotate(12deg); }
-      45% { transform: rotate(-10deg); }
-      60% { transform: rotate(6deg); }
-      75% { transform: rotate(0deg); }
-      100% { transform: rotate(0deg); }
-    }
-
-    .pokeball {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(to bottom, #ff3b3b 0%, #ff3b3b 48%, #222 48%, #222 52%, #fff 52%, #fff 100%);
-      border: 4px solid #111;
-      border-radius: 50%;
-      position: relative;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
-      transition: filter 0.3s ease;
-    }
-
-    .pokeball-loader-container.ready .pokeball {
-      filter: drop-shadow(0 0 12px #ffd700);
-      animation: bounceReady 1s infinite alternate ease-in-out;
-    }
-
-    @keyframes bounceReady {
-      0% { transform: translateY(0) scale(1); }
-      100% { transform: translateY(-5px) scale(1.05); }
-    }
-
-    .pokeball-center {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 16px; height: 16px;
-      background: #fff;
-      border: 4px solid #222;
-      border-radius: 50%;
-      box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
-    }
-
-    .pokeball-center-inner {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 5px; height: 5px;
-      background: #ff3b3b;
-      border-radius: 50%;
-    }
-
-    .pokeball.opening { animation: openPokeballAnim 0.6s forwards ease-in-out; }
-    @keyframes openPokeballAnim {
-      0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-      40% { transform: scale(1.3) rotate(-10deg); filter: brightness(3); }
-      70% { transform: scale(1.5) rotate(10deg); filter: brightness(5); background: #fff; }
-      100% { transform: scale(3); opacity: 0; filter: brightness(10); }
-    }
-
-    #preload-text {
-      font-size: 5.5px;
-      line-height: 9px;
-      letter-spacing: 0.5px;
-      text-align: center;
-      color: #ffd700;
-      text-shadow: 1px 1px #000;
-      min-height: 20px;
-      max-width: 100%;
-      word-break: break-word;
-    }
-
-    .turning-on { animation: turnOn 1.5s forwards; }
-    @keyframes turnOn {
-      0% { background: #000; opacity: 0; }
-      50% { background: #554422; opacity: 0.5; }
-      100% { background: #332211; opacity: 1; }
-    }
-
-    .gb-screen { background: #2c221e; color: #f4e8c1; }
-
-    #booster-container { perspective: 1000px; position: relative; }
-    .booster-pack {
-      width: 130px; height: 185px; 
-      background: linear-gradient(135deg, #222 0%, #444 30%, #b8860b 50%, #111 80%, #000 100%);
-      border: 3px solid #ffd700; border-radius: 10px; position: relative; cursor: crosshair; display: flex;
-      flex-direction: column; box-shadow: 0 12px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,215,0,0.6); 
-      overflow: hidden; touch-action: none;
-    }
-    .booster-shine {
-      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
-      pointer-events: none; border-radius: 10px; animation: shineMove 3s infinite linear;
-    }
-    @keyframes shineMove {
-      0% { transform: translateX(-60%) translateY(-60%) rotate(25deg); }
-      100% { transform: translateX(60%) translateY(60%) rotate(25deg); }
-    }
-    .booster-top {
-      height: 30px; background: linear-gradient(90deg, #555, #888, #555); border-bottom: 2px dashed #ffd700; display: flex;
-      align-items: center; justify-content: center; font-size: 5px; color: #ffd700; font-weight: bold;
-      border-radius: 7px 7px 0 0; text-shadow: 1px 1px #000;
-    }
-    .booster-bottom {
-      flex: 1; display: flex; align-items: center; justify-content: center; font-size: 8px;
-      font-weight: bold; color: #ffd700; flex-direction: column; gap: 8px;
-    }
-    .booster-logo { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 5px #ffd700); }
-
-    #laser-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
-    .booster-pack.sliced-open { animation: packOpenAnim 0.8s ease-out forwards; }
-    @keyframes packOpenAnim {
-      0% { transform: scale(1); filter: brightness(2); }
-      50% { transform: scale(1.1) rotate(5deg); filter: brightness(3) drop-shadow(0 0 20px #00ffff); }
-      100% { transform: translateY(180px) scale(0.6) rotate(25deg); opacity: 0; }
-    }
-
-    #sparkles-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; z-index: 20; }
-    .firefly {
-      position: absolute; width: 4px; height: 4px; background: #ffff88; border-radius: 50%;
-      box-shadow: 0 0 8px #ffcc00, 0 0 15px #ffff00;
-      animation: floatFirefly 2.5s infinite ease-in-out;
-    }
-    @keyframes floatFirefly {
-      0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
-      30% { opacity: 1; }
-      100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
-    }
-
-    .card-container { position: relative; width: 155px; height: 215px; margin-top: 2px; z-index: 5; }
-    .card-wrapper { position: absolute; width: 100%; height: 100%; cursor: grab; touch-action: none; display: flex; justify-content: center; align-items: center; }
-    .card-wrapper.dragging { transition: none; cursor: grabbing; z-index: 99 !important; }
-    .card-wrapper.snap-back { transition: transform 0.3s ease; }
-    .card-swiped { transform: translateY(-350px) rotate(-15deg) !important; opacity: 0 !important; pointer-events: none; transition: transform 0.5s ease, opacity 0.5s ease; }
-    
-    .pokemon-card {
-      width: 155px; height: 215px;
-      background: radial-gradient(circle at center, rgba(245, 230, 205, 0.9) 0%, rgba(196, 164, 124, 0.95) 100%);
-      border-radius: 10px; border: 6px solid #5c3d29; 
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(70, 45, 25, 0.7);
-      display: flex; flex-direction: column; padding: 6px; box-sizing: border-box;
-      position: relative; overflow: hidden; pointer-events: none;
-    }
-
-    .card-inner-frame {
-      background: linear-gradient(135deg, #e6d3b3 0%, #cfb58c 100%);
-      border: 2px solid #8c6b48; border-radius: 6px; flex: 1;
-      display: flex; flex-direction: column; padding: 6px; box-sizing: border-box;
-      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4); z-index: 2; position: relative;
-    }
-
-    .title-container {
-      position: absolute; top: 6px; left: 6px; width: 78%; height: 24px;
-      background: linear-gradient(to bottom, #4d3825, #2a1f15);
-      border: 2px solid #1a130d; border-radius: 5px 5px 12px 5px;
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.5);
-      display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; z-index: 3;
-    }
-
-    .card-image-box { 
-      position: absolute; top: 34px; left: 6px; right: 6px; height: 65px; 
-      background: linear-gradient(135deg, #2b231d 0%, #1a130d 100%); 
-      border: 2px solid #5c3d29; border-radius: 4px; 
-      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 2px 3px rgba(0, 0, 0, 0.3); 
-      display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; 
-    }
-    .card-image-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2) contrast(1.1); }
-    
-    .card-description-box { 
-      position: absolute; bottom: 6px; left: 6px; right: 6px; top: 103px; 
-      background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.2); 
-      border-radius: 4px; padding: 4px 6px; box-sizing: border-box; 
-      display: flex; align-items: center; justify-content: center; z-index: 2; 
-      overflow-y: auto; 
-    }
-    .card-description-text { 
-      font-family: 'Georgia', serif; 
-      font-size: 7.5px; 
-      color: #3d2817; 
-      text-align: center; 
-      line-height: 1.35; 
-      font-style: italic; 
-      width: 100%;
-      word-break: break-word;
-    }
-
-    .duplicate-tag { font-size: 4.5px; color: #ff4444; font-weight: bold; position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.85); padding: 2px 4px; border-radius: 2px; z-index: 15; border: 1px solid #ff4444; }
-
-    .card-glow-reveal { animation: cardGlowFade 1.5s ease-out forwards; }
-    @keyframes cardGlowFade { 0% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
-
-    button { font-family: 'Press Start 2P', monospace; padding: 8px 10px; font-size: 7px; cursor: pointer; background: #3d2616; color: #ffcc00; border: 3px solid #ffd700; box-shadow: 2px 2px 0px #111; margin-top: 6px; }
-    button:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px #111; }
-    .btn-small { padding: 5px 7px; font-size: 6px; }
-    .stat-box { font-size: 6px; line-height: 9px; text-align: left; }
-
-    .actor-sprite { position: absolute; pointer-events: none; z-index: 5; image-rendering: pixelated; object-fit: contain; }
-
-    #debug-panel {
-      position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); border: 2px solid #ffd700;
-      padding: 6px; border-radius: 6px; z-index: 99999; display: flex; flex-direction: column; gap: 4px;
-    }
-    #debug-panel button { font-size: 5px; padding: 4px 6px; margin: 0; background: #222; color: #00ffcc; border-color: #00ffcc; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+    .modal-content { background: var(--panel); border-radius: 8px; padding: 20px; max-width: 900px; margin: 0 auto; border: 1px solid var(--border); }
+    .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+    .asset-card { background: #252a41; border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; }
+    .asset-card img { max-width: 100%; height: 70px; object-fit: contain; image-rendering: pixelated; }
   </style>
 </head>
 <body>
 
-  <div id="debug-panel">
-    <div style="font-size: 5px; color: #ffd700; text-align: center;">[ TEST PANEL F12 ]</div>
-    <button onclick="testSupabaseConnection()">Test Connessione</button>
-    <button onclick="playBlingSound()">Test Suono Bling 🎵</button>
-    <button onclick="forcedRarity = 'Leggendaria'; alert('Forzata Leggendaria!');">Forza Leggendaria</button>
-    <button onclick="forcedRarity = null; alert('Filtro rimosso.');">Reset Filtro</button>
+  <div id="auth-screen" class="panel">
+    <h3>Autenticazione Richiesta</h3>
+    <div id="auth-logged" style="display:none;">
+      <p id="user-info"></p>
+      <button class="btn-success" style="width:100%" onclick="enterEditor()">Entra nell'Editor</button>
+    </div>
+    <div id="auth-form">
+      <div class="field" style="text-align:left;"><label>Email:</label><input type="email" id="auth-email"></div>
+      <div class="field" style="text-align:left;"><label>Password:</label><input type="password" id="auth-password"></div>
+      <button style="width:100%; margin-top:10px;" onclick="login()">Accedi</button>
+    </div>
   </div>
 
-  <div id="gameboy-frame">
-    <div id="frame-label">[ POKEMON CARD SYNC - ANCIENT ERA ]</div>
+  <div id="editor-screen" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h1>Cutscene Studio Pro (16:9)</h1>
+      <button style="background:#dc2626;" onclick="logout()">Disconnetti</button>
+    </div>
 
-    <div id="screen-wrapper">
+    <div class="panel" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button style="background:#3b82f6;" onclick="loadCutsceneFromSupabase()">☁️ Carica da Supabase</button>
+      <button style="background:#8b5cf6;" onclick="document.getElementById('import-json-file').click()">📂 Importa JSON</button>
+      <input type="file" id="import-json-file" style="display:none;" accept=".json" onchange="importLocalJSON(event)">
+      
+      <button style="background:#0284c7;" onclick="triggerUploadBackground()">🖼️ Aggiungi Sfondo a Supabase</button>
+      <button style="background:#0d9488;" onclick="triggerUploadMusic()">🎵 Aggiungi Musica a Supabase</button>
+      <input type="file" id="hidden-bg-file" style="display:none;" accept="image/png,image/jpeg" onchange="uploadBackgroundFile(event)">
+      <input type="file" id="hidden-music-file" style="display:none;" accept="audio/mp3,audio/mpeg" onchange="uploadMusicFile(event)">
+    </div>
 
-      <div id="part0" class="screen active">
-        <div style="margin-bottom: 6px; color: #ffcc00;">CONFIGURAZIONE ALLENATORE</div>
-        <label>NOME:</label>
-        <input type="text" id="login-username" value="Rosso">
-        <label>AVATAR (URL PNG):</label>
-        <input type="text" id="login-avatar" value="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico">
-        <button onclick="saveProfileAndGoToPart1()">REGISTRATI</button>
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <h3>1. Impostazioni Scena</h3>
+          <div class="field">
+            <label>Durata Totale Cutscene (s):</label>
+            <input type="number" id="cutscene-duration" value="8" min="1" max="60" onchange="updateCutsceneDuration()">
+          </div>
+          <div class="field">
+            <label>Sfondo Scena:</label>
+            <button class="btn-select" id="lbl-bg" onclick="openPicker('background')">📁 Seleziona Sfondo...</button>
+          </div>
+          <div class="field">
+            <label>Musica:</label>
+            <button class="btn-select" id="lbl-music" onclick="openPicker('music')">📁 Seleziona Musica...</button>
+          </div>
+          <div class="field">
+            <label>Dimensione Sprite Globale (%):</label>
+            <input type="number" id="global-sprite-scale" value="100" min="10" max="500" oninput="updateSpriteScale(this.value)">
+          </div>
+
+          <hr style="border-color:var(--border); margin:15px 0;">
+
+          <h3>2. Aggiungi Personaggio</h3>
+          <div class="field">
+            <label>Tipo:</label>
+            <select id="new-actor-type">
+              <option value="png">PNG / NPC</option>
+              <option value="companion">Companion</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nome Personaggio:</label>
+            <input type="text" id="new-actor-name" placeholder="Es. Guardia 1, Companion Rex...">
+          </div>
+
+          <button class="btn-select" style="margin-top:10px;" id="lbl-new-actor-asset" onclick="openPickerForNewActor()">📁 Scegli Asset e Aggiungi ➔</button>
+        </div>
+
+        <div class="panel">
+          <h3>3. Evento Dialogo</h3>
+          <div class="field">
+            <label>Chi Parla:</label>
+            <select id="dialogue-speaker"></select>
+          </div>
+          <div class="field">
+            <label>Testo Dialogo:</label>
+            <input type="text" id="event-text" placeholder="Messaggio...">
+          </div>
+          <div class="field">
+            <label>Tempo Inizio (s):</label>
+            <input type="number" id="event-start" value="0" step="0.5">
+          </div>
+          <div class="field">
+            <label>Durata (s):</label>
+            <input type="number" id="event-duration" value="2" step="0.5">
+          </div>
+          <button class="btn-success" onclick="addDialogueEvent()">+ Aggiungi Dialogo</button>
+        </div>
       </div>
 
-      <div id="part1" class="screen">
-        <button id="start-btn" onclick="startApp()">START</button>
-      </div>
+      <div>
+        <div id="stage" class="stage-container" onclick="handleStageGlobalClick(event)">
+          <div id="dialogue-overlay">
+            <div class="speaker" id="dialogue-speaker-name">Speaker</div>
+            <div class="text" id="dialogue-text-content">...</div>
+          </div>
+        </div>
 
-      <div id="part2" class="screen"></div>
-
-      <div id="part2bis" class="screen">
-        <div id="pokeball-wrapper" class="pokeball-loader-container shaking">
-          <div class="pokeball" id="main-pokeball">
-            <div class="pokeball-center">
-              <div class="pokeball-center-inner"></div>
+        <div class="panel">
+          <div class="timeline-header">
+            <h3>Timeline Entità & Eventi <span id="time-display">0.0 / 8.0 s</span></h3>
+            <div>
+              <button style="background:#2563eb;" onclick="startPreview()">▶ Riproduci</button>
+              <button style="background:#dc2626;" onclick="stopPreview()">⏹ Stop</button>
             </div>
           </div>
-          <div id="preload-text">Connessione al server...</div>
-        </div>
-      </div>
 
-      <div id="part3" class="screen gb-screen" onclick="handleCutsceneClick()" style="position: relative; overflow: hidden; padding: 0; cursor: pointer; width: 100%; height: 100%;">
-        <div id="cutscene-bg" style="position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: 1;"></div>
-        <div id="sprites-layer" style="position: absolute; width: 100%; height: 100%; z-index: 2; pointer-events: none;"></div>
-
-        <div class="stat-box" style="position: absolute; top: 5px; left: 5px; z-index: 10; background: rgba(44, 34, 30, 0.9); padding: 4px; border-radius: 4px; border: 1px solid #ffd700;">
-          <div>STREAK: <span id="val-streak">1</span> GG | MESI: <span id="val-months">0</span></div>
-          <div>BAMBOLE: <span id="val-dolls">0</span>/3 | POLVERE: <span id="val-dust">0</span></div>
-        </div>
-
-        <div id="dialogue-box" style="position: absolute; bottom: 8px; left: 4%; width: 92%; min-height: 45px; background: #3b2219; border: 3px solid #ffd700; padding: 6px; z-index: 10; text-align: left; display: none;">
-          <div id="speaker-name" style="font-size: 7px; color: #ffd700; font-weight: bold; margin-bottom: 3px; text-transform: uppercase;"></div>
-          <div id="dialogue-text" style="font-size: 6px; line-height: 9px; color: #f4e8c1;"></div>
-          <div style="font-size: 5px; color: #ffd700; position: absolute; bottom: 2px; right: 4px;">[CLICK PER AVANZARE]</div>
-        </div>
-        <audio id="gb-music" loop></audio>
-      </div>
-
-      <div id="part4" class="screen" style="background: #111; color: #fff; overflow: hidden; position: relative;">
-        <div id="sparkles-container"></div>
-
-        <div id="booster-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 8px; color: #ffd700;">TRACCIA IL FULMINE SULLA BUSTA (90%)!</div>
-          <div style="position: relative;">
-            <canvas id="laser-canvas"></canvas>
-            <div class="booster-pack" id="booster-pack">
-              <div class="booster-shine"></div>
-              <div class="booster-top">⚡ PLASMA</div>
-              <div class="booster-bottom">
-                <img src="https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico" class="booster-logo" alt="Logo">
-                <div style="font-size: 5px; font-weight: normal; color:#ffd700;">ANCIENT PACK</div>
-              </div>
+          <div class="timeline-wrapper" id="timeline-wrapper">
+            <div class="timeline-ruler" id="timeline-ruler">
+              <!-- Righello generato dinamicamente -->
             </div>
+            <div id="timeline-tracks" class="timeline-tracks"></div>
+          </div>
+
+          <br>
+          <div style="display:flex; gap:10px;">
+            <button style="flex:1; background:#10b981;" onclick="saveToSupabase()">☁️ Salva Cutscene</button>
+            <button style="flex:1; background:#e67e22;" onclick="exportJSON()">💾 Scarica JSON</button>
           </div>
         </div>
-
-        <div id="cards-area" style="display: none; flex-direction: column; align-items: center; width: 100%; z-index: 4;">
-          <div style="font-size: 5px; margin-bottom: 4px; color: #ffd700;">SOLLEVA VERSO L'ALTO (SWIPE UP)</div>
-          <div class="card-container" id="cards-stack"></div>
-        </div>
-
-        <div id="part4-summary" style="display: none; background: #2c221e; color: #f4e8c1; width: 96%; max-height: 96%; padding: 8px; border-radius: 4px; overflow-y: auto; z-index: 10; border: 2px solid #ffd700;">
-          <div style="text-align: center; background: #3b2219; color: #ffd700; font-size: 8px; padding: 4px; margin-bottom: 6px;">RIEPILOGO SBUSTATA ARCAICA</div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 7px; color: #000; background: #f4e8c1;">
-            <thead><tr style="background: #e6e6e6;"><th>Nome</th><th>Rarità</th><th>Qtà</th><th>Note</th></tr></thead>
-            <tbody id="part4-summary-body"></tbody>
-          </table>
-          <button onclick="finalizePackAndGoToPart5()" style="background: #8b0000; color: #ffd700; width: 100%; margin-top: 10px;">CONTINUA AL LOG</button>
-        </div>
       </div>
+    </div>
+  </div>
 
-      <div id="part5" class="screen gb-screen">
-        <h3 style="font-size: 8px; margin-bottom: 4px; color: #ffd700;">LOG SALVATAGGIO</h3>
-        <div id="summary-content" style="font-size: 6px; line-height: 10px; max-width: 90%;"></div>
-        <button onclick="openAlbum()" class="btn-small" style="background: #3d2616; color: #ffd700; margin-top: 8px;">VEDI ALBUM</button>
-        <button onclick="turnOff()">SPEGNI</button>
+  <div id="picker-modal" class="modal">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+        <h3 id="modal-title">Seleziona Asset</h3>
+        <button style="background:#dc3545;" onclick="closePicker()">Chiudi ✖</button>
       </div>
-
-      <div id="part6" class="screen" style="background: #000;">
-        <button onclick="restart()" style="background: #fff; color: #000;">FINE</button>
-      </div>
-
-      <div id="part-album" class="screen" style="background: #fff; color: #000; text-align: left; justify-content: flex-start; padding: 10px; overflow-y: auto;">
-        <div style="font-size: 9px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; padding: 4px; margin-bottom: 6px;">DATABASE INVENTARIO ARCAICO</div>
-        <div style="font-size: 8px; margin-bottom: 6px;"><b>Polvere:</b> <span id="excel-dust">0</span></div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 7px;">
-          <thead><tr style="background: #e6e6e6;"><th>ID</th><th>Nome</th><th>Rarità</th><th>Qtà</th></tr></thead>
-          <tbody id="excel-table-body"></tbody>
-        </table>
-        <button onclick="showScreen('part5')" class="btn-small" style="margin-top: 8px; background: #3d2616; color: #ffd700;">TORNA AL LOG</button>
-      </div>
-
+      <div id="asset-container" class="asset-grid"></div>
     </div>
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://tssgkiytaxmcrodrcrpu.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_3JHORvzXFoBh7XVVuSqgTg__ezQdQMa';
+    const SUPABASE_URL = "https://tssgkiytaxmcrodrcrpu.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_3JHORvzXFoBh7XVVuSqgTg__ezQdQMa";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const STORAGE_AUDIO_URL = `${SUPABASE_URL}/storage/v1/object/public/soundfx`;
-    const externalSoundEffects = {
-      strappare: `${STORAGE_AUDIO_URL}/strappare.mp3`,
-      swush: `${STORAGE_AUDIO_URL}/swush.mp3`
+    let backgroundPath = '';
+    let musicPath = '';
+    let cutsceneDuration = 8;
+    let globalSpriteScale = 100;
+    let currentUsername = 'Utente';
+    
+    let actorsList = [];
+
+    let timelineEvents = [];
+    let isPreviewRunning = false;
+    let isDialogueWaiting = false;
+    let clickMoveStep = 0; 
+    let clickMoveTargetActor = null;
+    let bgAudio = new Audio();
+    let previewTimer = null;
+    let pendingActorAssetType = '';
+    let currentPickerCategory = '';
+
+    window.onload = async () => {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session) {
+        currentUsername = session.user.email.split('@')[0];
+        document.getElementById('auth-logged').style.display = 'block';
+        document.getElementById('auth-form').style.display = 'none';
+        document.getElementById('user-info').innerText = `Logged: ${session.user.email}`;
+      } else {
+        document.getElementById('auth-logged').style.display = 'none';
+        document.getElementById('auth-form').style.display = 'block';
+      }
+
+      // Inizializza l'attore principale con il nome utente se non già presente
+      if (actorsList.length === 0) {
+        actorsList.push({
+          id: 'hero',
+          name: currentUsername,
+          type: 'hero',
+          asset: 'sprite/personaggioprincipale/fallback/standing.png',
+          pos: [216, 111]
+        });
+      }
+
+      renderRuler();
+      renderStageActors();
+      renderTimeline();
+      updateDropdownOptions();
     };
 
-    let forcedRarity = null;
-    let audioCtx = null;
-    
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+    async function login() {
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+      const { error } = await _supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert("Errore Autenticazione: " + error.message);
+      } else {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session) {
+          currentUsername = session.user.email.split('@')[0];
+          // Aggiorna anche il nome del primo attore se è rimasto quello di default o precedente
+          if (actorsList.length > 0 && actorsList[0].id === 'hero') {
+            actorsList[0].name = currentUsername;
+          }
+        }
+        enterEditor();
+        renderStageActors();
+        renderTimeline();
+        updateDropdownOptions();
       }
     }
 
-    async function testSupabaseConnection() {
-      try {
-        const { data, error } = await _supabase.from('user_state').select('*').limit(1);
-        if (error) alert("Errore Supabase! Controlla la console F12.");
-        else alert("Connessione a Supabase OK!");
-      } catch (err) {
-        alert("Eccezione di rete. Guarda la console F12.");
+    async function logout() {
+      await _supabase.auth.signOut();
+      document.getElementById('editor-screen').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'block';
+      document.getElementById('auth-logged').style.display = 'none';
+      document.getElementById('auth-form').style.display = 'block';
+    }
+
+    function enterEditor() {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('editor-screen').style.display = 'block';
+    }
+
+    function updateCutsceneDuration() {
+      const val = parseFloat(document.getElementById('cutscene-duration').value);
+      if (val && val > 0) {
+        cutsceneDuration = val;
+        renderRuler();
+        renderTimeline();
+        document.getElementById('time-display').innerText = `0.0 / ${cutsceneDuration.toFixed(1)} s`;
       }
     }
 
-    function playBlingSound() {
-      initAudio();
-      try {
-        const now = audioCtx.currentTime;
-        const masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0.8, now);
-        masterGain.connect(audioCtx.destination);
+    function updateSpriteScale(val) {
+      globalSpriteScale = parseInt(val) || 100;
+      document.querySelectorAll('.draggable-actor').forEach(el => {
+        const img = el.querySelector('img');
+        if (img) {
+          const baseSize = 48;
+          const newSize = (baseSize * globalSpriteScale) / 100;
+          el.style.width = newSize + 'px';
+          el.style.height = newSize + 'px';
+        }
+      });
+    }
 
-        const notes = [523.25, 659.25, 783.99, 1046.50]; 
-        notes.forEach((freq, index) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now + (index * 0.08));
-          
-          gain.gain.setValueAtTime(0.3, now + (index * 0.08));
-          gain.gain.exponentialRampToValueAtTime(0.001, now + (index * 0.08) + 0.3);
-          
-          osc.connect(gain);
-          gain.connect(masterGain);
-          
-          osc.start(now + (index * 0.08));
-          osc.stop(now + (index * 0.08) + 0.3);
+    function renderRuler() {
+      const ruler = document.getElementById('timeline-ruler');
+      ruler.innerHTML = '';
+      const steps = 5;
+      for (let i = 0; i <= steps; i++) {
+        const timeMark = ((cutsceneDuration / steps) * i).toFixed(1);
+        const mark = document.createElement('div');
+        mark.className = 'ruler-mark';
+        mark.innerText = `${timeMark}s`;
+        ruler.appendChild(mark);
+      }
+    }
+
+    function triggerUploadBackground() {
+      document.getElementById('hidden-bg-file').click();
+    }
+
+    async function uploadBackgroundFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const folderChoice = prompt("Inserisci il nome della cartella in cui caricare lo sfondo (es. trama1 o un nuovo nome):");
+      if (!folderChoice) return;
+
+      const folderName = folderChoice.trim().toLowerCase().replace(/\s+/g, '-');
+      const filePath = `background/${folderName}/${file.name}`;
+
+      try {
+        const { error } = await _supabase.storage.from('assets').upload(filePath, file, { upsert: true });
+        if (error) throw error;
+        alert("✅ Caricato");
+      } catch (e) {
+        alert("Errore durante l'upload dello sfondo: " + e.message);
+      }
+      event.target.value = '';
+    }
+
+    function triggerUploadMusic() {
+      document.getElementById('hidden-music-file').click();
+    }
+
+    async function uploadMusicFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const filePath = `music/${file.name}`;
+
+      try {
+        const { error } = await _supabase.storage.from('assets').upload(filePath, file, { upsert: true });
+        if (error) throw error;
+        alert("✅ Caricato");
+      } catch (e) {
+        alert("Errore durante l'upload della musica: " + e.message);
+      }
+      event.target.value = '';
+    }
+
+    async function loadCutsceneFromSupabase() {
+      const dayNumber = prompt("Inserisci il numero del giorno da caricare (es. 1):");
+      if (!dayNumber) return;
+
+      const fileName = `cutscenes/giorno${dayNumber.trim()}.json`;
+      try {
+        const { data, error } = await _supabase.storage.from('assets').download(fileName);
+        if (error) throw error;
+
+        const text = await data.text();
+        const json = JSON.parse(text);
+
+        backgroundPath = json.background || '';
+        musicPath = json.music || '';
+        cutsceneDuration = json.duration || 8;
+        globalSpriteScale = json.spriteScale || 100;
+        actorsList = json.actors || actorsList;
+        timelineEvents.length = 0;
+        if (json.events) timelineEvents.push(...json.events);
+
+        document.getElementById('cutscene-duration').value = cutsceneDuration;
+        document.getElementById('global-sprite-scale').value = globalSpriteScale;
+
+        if (backgroundPath) {
+          document.getElementById('stage').style.backgroundImage = `url(${SUPABASE_URL}/storage/v1/object/public/assets/${backgroundPath})`;
+          document.getElementById('lbl-bg').innerText = `✅ Caricato`;
+        }
+        if (musicPath) {
+          document.getElementById('lbl-music').innerText = `✅ Caricato`;
+        }
+
+        renderRuler();
+        renderStageActors();
+        renderTimeline();
+        updateDropdownOptions();
+        alert(`Cutscene ${fileName} caricata con successo!`);
+      } catch (e) {
+        alert("Errore nel caricamento: " + e.message);
+      }
+    }
+
+    function importLocalJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const json = JSON.parse(e.target.result);
+          backgroundPath = json.background || '';
+          musicPath = json.music || '';
+          cutsceneDuration = json.duration || 8;
+          globalSpriteScale = json.spriteScale || 100;
+          actorsList = json.actors || actorsList;
+          timelineEvents.length = 0;
+          if (json.events) timelineEvents.push(...json.events);
+
+          document.getElementById('cutscene-duration').value = cutsceneDuration;
+          document.getElementById('global-sprite-scale').value = globalSpriteScale;
+
+          if (backgroundPath) {
+            document.getElementById('stage').style.backgroundImage = `url(${SUPABASE_URL}/storage/v1/object/public/assets/${backgroundPath})`;
+            document.getElementById('lbl-bg').innerText = `✅ Importato`;
+          }
+          renderRuler();
+          renderStageActors();
+          renderTimeline();
+          updateDropdownOptions();
+          alert("JSON importato con successo!");
+        } catch (err) {
+          alert("File JSON non valido.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function renderStageActors() {
+      const stage = document.getElementById('stage');
+      stage.querySelectorAll('.draggable-actor').forEach(el => el.remove());
+
+      actorsList.forEach(actor => {
+        const div = document.createElement('div');
+        div.className = 'draggable-actor';
+        div.id = `actor-dom-${actor.id}`;
+        div.style.left = actor.pos[0] + 'px';
+        div.style.top = actor.pos[1] + 'px';
+
+        const baseSize = 48;
+        const scaledSize = (baseSize * globalSpriteScale) / 100;
+        div.style.width = scaledSize + 'px';
+        div.style.height = scaledSize + 'px';
+
+        div.innerHTML = `
+          <img src="${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}">
+          <div class="actor-label">${actor.name}</div>
+        `;
+
+        let isDragging = false, offset = [0, 0];
+        div.addEventListener('mousedown', (e) => {
+          if (isPreviewRunning || clickMoveStep !== 0) return;
+          isDragging = true;
+          offset = [div.offsetLeft - e.clientX, div.offsetTop - e.clientY];
         });
-      } catch(e) {}
+
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          const maxW = 480 - scaledSize;
+          const maxH = 270 - scaledSize;
+          const x = Math.max(0, Math.min(maxW, e.clientX + offset[0]));
+          const y = Math.max(0, Math.min(maxH, e.clientY + offset[1]));
+          div.style.left = x + 'px';
+          div.style.top = y + 'px';
+          actor.pos = [x, y];
+        });
+
+        document.addEventListener('mouseup', () => isDragging = false);
+        stage.appendChild(div);
+      });
     }
 
-    async function getRandomQuoteFromBucket() {
-      const fallbackQuotes = [
-        "Catturando Snorlax...",
-        "Cercando il Pokéflauto...",
-        "Gettando via la Pietrastante...",
-        "Consultando il Pokédex...",
-        "Svegliando uno Snorlax assonnato...",
-        "Lucidando le Medaglie...",
-        "Ricaricando il Repellente..."
-      ];
+    function updateDropdownOptions() {
+      const spkSelect = document.getElementById('dialogue-speaker');
+      spkSelect.innerHTML = '<option value="Narratore">Narratore</option>';
+      actorsList.forEach(a => {
+        spkSelect.innerHTML += `<option value="${a.name}">${a.name}</option>`;
+      });
+    }
 
-      try {
-        const { data: publicUrlData } = _supabase.storage.from('quotes').getPublicUrl('loading_quotes.json');
-        const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-        if (response.ok) {
-          const quotesArray = await response.json();
-          if (Array.isArray(quotesArray) && quotesArray.length > 0) {
-            const todayStr = new Date().toISOString().slice(0, 10);
-            let seed = 0;
-            for (let i = 0; i < todayStr.length; i++) {
-              seed = (seed * 31 + todayStr.charCodeAt(i)) % 10000000;
+    function openPickerForNewActor() {
+      const name = document.getElementById('new-actor-name').value.trim();
+      if (!name) return alert("Inserisci prima un nome per il personaggio!");
+      
+      const type = document.getElementById('new-actor-type').value;
+      pendingActorAssetType = type;
+      openPicker(type);
+    }
+
+    async function openPicker(category, subFolder = '') {
+      currentPickerCategory = category;
+      document.getElementById('modal-title').innerText = `Seleziona ${category.toUpperCase()}`;
+      document.getElementById('picker-modal').style.display = 'block';
+      await loadPickerItems(category, subFolder);
+    }
+
+    function closePicker() { document.getElementById('picker-modal').style.display = 'none'; }
+
+    async function loadPickerItems(category, subFolder = '') {
+      const container = document.getElementById('asset-container');
+      container.innerHTML = 'Caricamento...';
+
+      let fetchPath = category === 'background' ? 'background' : 
+                      (category === 'music' ? 'music' : 
+                      (category === 'png' ? 'sprite/png' : 'sprite/companion'));
+
+      if (subFolder) fetchPath += `/${subFolder}`;
+      const { data } = await _supabase.storage.from('assets').list(fetchPath);
+      container.innerHTML = '';
+
+      for (const item of data || []) {
+        const fullPath = `${fetchPath}/${item.name}`;
+        const card = document.createElement('div');
+        card.className = 'asset-card';
+
+        if (!item.id && (category === 'png' || category === 'companion')) {
+          const standingFilePath = `${fullPath}/standing.png`;
+          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/assets/${standingFilePath}`;
+
+          card.innerHTML = `
+            <img src="${publicUrl}" style="object-fit:contain;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\'><text y=\'30\' font-size=\'25\'>📁</text></svg>';"><br>
+            <span style="font-size:11px;">${item.name}</span>
+          `;
+          card.onclick = () => openPicker(category, item.name);
+        } 
+        else if (!item.id) {
+          card.innerHTML = `📁<br><span style="font-size:11px;">${item.name}</span>`;
+          card.onclick = () => openPicker(category, item.name);
+        } 
+        else {
+          if (category === 'music') {
+            card.innerHTML = `🎵<br><span style="font-size:11px;">${item.name}</span>`;
+          } else {
+            card.innerHTML = `<img src="${SUPABASE_URL}/storage/v1/object/public/assets/${fullPath}" style="object-fit:contain;"><br><span style="font-size:11px;">${item.name}</span>`;
+          }
+
+          card.onclick = () => {
+            if (category === 'background') {
+              backgroundPath = fullPath;
+              document.getElementById('stage').style.backgroundImage = `url(${SUPABASE_URL}/storage/v1/object/public/assets/${fullPath})`;
+              document.getElementById('lbl-bg').innerText = `✅ ${item.name}`;
+            } else if (category === 'music') {
+              musicPath = fullPath;
+              document.getElementById('lbl-music').innerText = `✅ ${item.name}`;
+            } else {
+              const name = document.getElementById('new-actor-name').value;
+              const initialPos = [216 + (actorsList.length * 30), 111];
+
+              const newActor = {
+                id: 'actor_' + Date.now(),
+                name: name,
+                type: pendingActorAssetType,
+                asset: fullPath,
+                pos: initialPos
+              };
+              actorsList.push(newActor);
+
+              renderStageActors();
+              renderTimeline();
+              updateDropdownOptions();
+              document.getElementById('new-actor-name').value = '';
             }
-            const randomIndex = seed % quotesArray.length;
-            return quotesArray[randomIndex];
-          }
-        }
-      } catch (e) {}
-
-      return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
-    }
-
-    function playHighVolumeSound(type) {
-      initAudio();
-
-      if (type === 'laser' || type === 'swipe') {
-        const soundKey = type === 'laser' ? 'strappare' : 'swush';
-        const audioUrl = externalSoundEffects[soundKey];
-        
-        if (audioUrl) {
-          const audio = new Audio(audioUrl);
-          audio.crossOrigin = "anonymous";
-          
-          try {
-            const source = audioCtx.createMediaElementSource(audio);
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 2.5;
-            source.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            audio.play().catch(() => { playFallbackSynth(type); });
-            return;
-          } catch (e) {
-            audio.volume = 1.0;
-            audio.play().catch(() => { playFallbackSynth(type); });
-            return;
-          }
-        }
-      }
-      playFallbackSynth(type);
-    }
-
-    function playFallbackSynth(type) {
-      try {
-        const now = audioCtx.currentTime;
-        const masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(1.5, now);
-        masterGain.connect(audioCtx.destination);
-
-        if (type === 'laser' || type === 'strappare') {
-          const bufferSize = audioCtx.sampleRate * 0.3;
-          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-          const data = buffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-          
-          const noise = audioCtx.createBufferSource();
-          noise.buffer = buffer;
-          const filter = audioCtx.createBiquadFilter();
-          filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(1000, now);
-          filter.frequency.exponentialRampToValueAtTime(300, now + 0.3);
-
-          const gain = audioCtx.createGain();
-          gain.gain.setValueAtTime(0.8, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(masterGain);
-          noise.start(now);
-        } else if (type === 'swipe' || type === 'swush') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(400, now);
-          osc.frequency.exponentialRampToValueAtTime(120, now + 0.2);
-          gain.gain.setValueAtTime(0.7, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-          osc.connect(gain);
-          gain.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.2);
-        } else if (type === 'gb_boot') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(587.33, now);
-          osc.frequency.setValueAtTime(880.00, now + 0.08);
-          gain.gain.setValueAtTime(0.6, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-          osc.connect(gain);
-          gain.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.6);
-        } else if (type === 'off') {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(400, now);
-          osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
-          gain.gain.setValueAtTime(0.8, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          osc.connect(gain);
-          gain.connect(masterGain);
-          osc.start(now);
-          osc.stop(now + 0.4);
-        }
-      } catch(e) {}
-    }
-
-    let isDrawingLaser = false;
-    let laserPoints = [];
-    let packSliced = false;
-    let dragObj = null;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let dragType = '';
-    let startXPoint = 0;
-    let startYPoint = 0;
-
-    function setupLaserCanvas() {
-      const canvas = document.getElementById('laser-canvas');
-      const pack = document.getElementById('booster-pack');
-      if (canvas && pack) {
-        canvas.width = pack.offsetWidth;
-        canvas.height = pack.offsetHeight;
-      }
-    }
-
-    document.addEventListener('mousedown', handleStart);
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchstart', handleStart, {passive: false});
-    document.addEventListener('touchmove', handleMove, {passive: false});
-    document.addEventListener('touchend', handleEnd);
-
-    function handleStart(e) {
-      initAudio();
-      const pack = document.getElementById('booster-pack');
-      const cardTarget = e.target.closest('.card-wrapper');
-
-      if (cardTarget && !cardTarget.classList.contains('card-swiped')) {
-        dragType = 'card';
-        dragObj = cardTarget;
-        dragObj.classList.add('dragging');
-        dragObj.classList.remove('snap-back');
-        dragStartX = e.clientX || e.touches[0].clientX;
-        dragStartY = e.clientY || e.touches[0].clientY;
-        return;
-      }
-
-      if (!pack) return;
-      const rect = pack.getBoundingClientRect();
-      let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
-      let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-
-      if (clientX !== null && clientY !== null && clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom && !packSliced) {
-        isDrawingLaser = true;
-        startXPoint = clientX - rect.left;
-        startYPoint = clientY - rect.top;
-        laserPoints = [{ x: startXPoint, y: startYPoint }];
-        playHighVolumeSound('laser');
-      }
-    }
-
-    function handleMove(e) {
-      if (e.cancelable && (isDrawingLaser || dragObj)) e.preventDefault();
-      
-      if (isDrawingLaser && !packSliced) {
-        const pack = document.getElementById('booster-pack');
-        if (!pack) return;
-        const rect = pack.getBoundingClientRect();
-        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : null);
-        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-
-        if (clientX !== null && clientY !== null) {
-          let currentLocalX = clientX - rect.left;
-          let currentLocalY = clientY - rect.top;
-          laserPoints.push({ x: currentLocalX, y: currentLocalY });
-          drawLightningTrail();
-
-          let distanceX = Math.abs(currentLocalX - startXPoint);
-          let distanceY = Math.abs(currentLocalY - startYPoint);
-          
-          if (distanceX >= rect.width * 0.9 || distanceY >= rect.height * 0.9) {
-            packSliced = true;
-            isDrawingLaser = false;
-            pack.classList.add('sliced-open');
-            playHighVolumeSound('laser');
-
-            setTimeout(() => {
-              const bContainer = document.getElementById('booster-container');
-              const cArea = document.getElementById('cards-area');
-              if (bContainer) bContainer.style.display = 'none';
-              if (cArea) cArea.style.display = 'flex';
-              clearLaserCanvas();
-            }, 700);
-          }
-        }
-      } else if (dragType === 'card' && dragObj) {
-        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : null);
-        if (clientY !== null) {
-          let dy = clientY - dragStartY;
-          if (dy > 0) dy = 0;
-          dragObj.style.transform = `translateY(${dy}px) rotate(${dy/40}deg)`;
-        }
-      }
-    }
-
-    function handleEnd(e) {
-      if (isDrawingLaser) {
-        isDrawingLaser = false;
-        clearLaserCanvas();
-      }
-      if (dragType === 'card' && dragObj) {
-        dragObj.classList.remove('dragging');
-        let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-        let dy = clientY - dragStartY;
-
-        if (dy < -80) {
-          dragObj.style.transform = '';
-          performSwipe(dragObj);
-        } else {
-          dragObj.classList.add('snap-back');
-          dragObj.style.transform = 'translateY(0px) rotate(0deg)';
-        }
-        dragObj = null;
-        dragType = '';
-      }
-    }
-
-    function drawLightningTrail() {
-      const canvas = document.getElementById('laser-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (laserPoints.length < 2) return;
-
-      ctx.beginPath();
-      ctx.moveTo(laserPoints[0].x, laserPoints[0].y);
-      for (let i = 1; i < laserPoints.length; i++) {
-        let p = laserPoints[i];
-        ctx.lineTo(p.x + (Math.random() * 8 - 4), p.y + (Math.random() * 8 - 4));
-      }
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = '#00ffff';
-      ctx.shadowBlur = 20;
-      ctx.stroke();
-
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    function clearLaserCanvas() {
-      const canvas = document.getElementById('laser-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      laserPoints = [];
-    }
-
-    let userData = null;
-    let drawnCards = [];
-    let sessionSummary = [];
-    let cardsSwipedCount = 0;
-    let cutsceneData = null;
-    let cutsceneTimer = null;
-    let cutsceneTime = 0;
-    let isDialogueActive = false;
-    let triggeredEvents = new Set();
-    let isResourcesLoaded = false;
-
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById(id);
-      if (target) target.classList.add('active');
-    }
-
-    async function saveProfileAndGoToPart1() {
-      initAudio();
-      const uName = document.getElementById('login-username').value.trim() || 'Rosso';
-      const uAvatar = document.getElementById('login-avatar').value.trim() || 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico';
-      try {
-        await _supabase.from('user_state').upsert({ id: 1, username: uName, avatar_url: uAvatar }, { onConflict: 'id' });
-      } catch(e) {}
-      showScreen('part1');
-    }
-
-    function startApp() {
-      initAudio();
-      playHighVolumeSound('gb_boot');
-      const p2 = document.getElementById('part2');
-      showScreen('part2');
-      p2.classList.add('turning-on');
-      setTimeout(() => { 
-        p2.classList.remove('turning-on');
-        goToPart2Bis(); 
-      }, 1500);
-    }
-
-    async function goToPart2Bis() {
-      showScreen('part2bis');
-      isResourcesLoaded = false;
-      
-      const textEl = document.getElementById('preload-text');
-      const wrapperEl = document.getElementById('pokeball-wrapper');
-      
-      textEl.innerText = await getRandomQuoteFromBucket();
-      wrapperEl.classList.add('shaking');
-      wrapperEl.classList.remove('ready');
-
-      const minTimer = new Promise(resolve => setTimeout(resolve, 1500));
-
-      const dataFetchPromise = (async () => {
-        try {
-          const { data, error } = await _supabase.from('user_state').select('*').eq('id', 1).single();
-          userData = data || { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
-        } catch(e) {
-          userData = { streak_day: 1, months_completed: 0, dolls_count: 0, dust_count: 0, username: 'Rosso', avatar_url: 'https://raw.githubusercontent.com/claudio-git-poke/sbusto/main/favicon.ico' };
-        }
-
-        const fileName = `cutscenes/giorno${userData.streak_day}.json`;
-        try {
-          const { data: publicUrlData } = _supabase.storage.from('assets').getPublicUrl(fileName);
-          const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-          if (response.ok) cutsceneData = await response.json();
-          else cutsceneData = null;
-        } catch(e) { cutsceneData = null; }
-
-        if (!cutsceneData) {
-          cutsceneData = {
-            background: '', music: '',
-            actors: [{ id: 'Hero', name: userData.username || 'Hero', asset: '', pos: [216, 111] }],
-            events: [{ id: 1, type: 'dialogue', speaker: 'SAGGIO', text: "Benvenuto nel tuo nuovo giorno di avventura!", start: 0, duration: 3 }]
+            closePicker();
           };
         }
-      })();
-
-      await Promise.all([dataFetchPromise, minTimer]);
-      isResourcesLoaded = true;
-      wrapperEl.classList.remove('shaking');
-      wrapperEl.classList.add('ready');
+        container.appendChild(card);
+      }
     }
 
-    document.getElementById('pokeball-wrapper').addEventListener('click', () => {
-      if (!isResourcesLoaded) return;
-      isResourcesLoaded = false;
-      playHighVolumeSound('laser');
-      playBlingSound();
-      
-      const pokeballEl = document.getElementById('main-pokeball');
-      const textEl = document.getElementById('preload-text');
-      const wrapperEl = document.getElementById('pokeball-wrapper');
-      
-      textEl.innerText = "";
-      wrapperEl.classList.remove('ready');
-      pokeballEl.classList.add('opening');
+    function renderTimeline() {
+      const tracksContainer = document.getElementById('timeline-tracks');
+      tracksContainer.innerHTML = '';
 
-      setTimeout(() => {
-        pokeballEl.classList.remove('opening');
-        showScreen('part3');
-        document.getElementById('val-streak').innerText = userData.streak_day;
-        document.getElementById('val-months').innerText = userData.months_completed;
-        document.getElementById('val-dolls').innerText = userData.dolls_count;
-        document.getElementById('val-dust').innerText = userData.dust_count;
-        startCutscenePlayback();
-      }, 600);
-    });
+      actorsList.forEach(actor => {
+        const row = document.createElement('div');
+        row.className = 'track-row';
+        row.innerHTML = `<div class="track-label">👤 ${actor.name}</div><div class="track-content" id="track-actor-${actor.id}"></div>`;
+        tracksContainer.appendChild(row);
 
-    function startCutscenePlayback() {
-      const bgEl = document.getElementById('cutscene-bg');
-      const audioEl = document.getElementById('gb-music');
-      const spritesLayer = document.getElementById('sprites-layer');
-
-      spritesLayer.innerHTML = '';
-      triggeredEvents.clear();
-      cutsceneTime = 0;
-      isDialogueActive = false;
-
-      if (cutsceneData.background) {
-        bgEl.style.backgroundImage = `url('${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.background}')`;
-      }
-
-      if (cutsceneData.music) {
-        audioEl.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${cutsceneData.music}`;
-        audioEl.play().catch(() => {});
-      }
-
-      // Risoluzione nativa di riferimento dell'editor
-      const baseWidth = 480;
-      const baseHeight = 270;
-
-      const actorElements = {};
-      const actorCurrentPos = {};
-
-      (cutsceneData.actors || []).forEach(actor => {
-        const img = document.createElement('img');
-        img.className = 'actor-sprite';
-        let assetUrl = actor.asset ? (actor.asset.startsWith('http') ? actor.asset : `${SUPABASE_URL}/storage/v1/object/public/assets/${actor.asset}`) : userData.avatar_url;
-        img.src = assetUrl;
-
-        const startX = actor.pos ? actor.pos[0] : 100;
-        const startY = actor.pos ? actor.pos[1] : 100;
-        actorCurrentPos[actor.id] = { x: startX, y: startY };
-
-        // Posizionamento e dimensioni basati in percentuale rispetto alla risoluzione nativa 480x270
-        img.style.left = `${(startX / baseWidth) * 100}%`;
-        img.style.top = `${(startY / baseHeight) * 100}%`;
-        img.style.width = `${(48 / baseWidth) * 100}%`;
-        img.style.height = `${(48 / baseHeight) * 100}%`;
-        spritesLayer.appendChild(img);
-        actorElements[actor.id] = img;
+        const content = row.querySelector('.track-content');
+        const block = document.createElement('div');
+        block.className = 'timeline-block actor-track';
+        block.style.left = '0%';
+        block.style.width = '100%';
+        block.innerText = `${actor.type.toUpperCase()}: ${actor.name}`;
+        block.onclick = () => openActorInspector(actor);
+        content.appendChild(block);
       });
 
-      // Calcolo dinamico della durata basato sull'ultimo evento (con fallback a 10.0s se non specificato)
-      let maxEventEnd = 10.0;
-      if (cutsceneData && typeof cutsceneData.duration === 'number' && !isNaN(cutsceneData.duration)) {
-        maxEventEnd = cutsceneData.duration;
-      } else if (cutsceneData && Array.isArray(cutsceneData.events) && cutsceneData.events.length > 0) {
-        cutsceneData.events.forEach(ev => {
-          const evEnd = (ev.start || 0) + (ev.duration || 0);
-          if (evEnd > maxEventEnd) {
-            maxEventEnd = evEnd;
+      const eventRow = document.createElement('div');
+      eventRow.className = 'track-row';
+      eventRow.innerHTML = `<div class="track-label">🎬 Eventi</div><div class="track-content" id="track-events"></div>`;
+      tracksContainer.appendChild(eventRow);
+
+      const eventContent = eventRow.querySelector('#track-events');
+      timelineEvents.forEach(ev => {
+        const block = document.createElement('div');
+        block.className = `timeline-block ${ev.type}`;
+        block.style.left = `${(ev.start / cutsceneDuration) * 100}%`;
+        block.style.width = `${(ev.duration / cutsceneDuration) * 100}%`;
+        block.innerText = ev.type === 'dialogue' ? `💬 ${ev.speaker}: ${ev.text}` : `🏃 ${ev.actor}`;
+        
+        const resizerRight = document.createElement('div');
+        resizerRight.className = 'resizer right';
+        block.appendChild(resizerRight);
+
+        resizerRight.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          let startX = e.clientX;
+          let initialWidth = block.offsetWidth;
+          let trackWidth = eventContent.offsetWidth;
+
+          function onMouseMove(e) {
+            let deltaX = e.clientX - startX;
+            let newWidthPx = Math.max(20, initialWidth + deltaX);
+            let newDuration = parseFloat(((newWidthPx / trackWidth) * cutsceneDuration).toFixed(1));
+            ev.duration = Math.min(cutsceneDuration - ev.start, newDuration);
+            renderTimeline();
           }
+
+          function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          }
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
         });
+
+        const resizerLeft = document.createElement('div');
+        resizerLeft.className = 'resizer left';
+        block.appendChild(resizerLeft);
+
+        resizerLeft.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          let startX = e.clientX;
+          let initialLeft = block.offsetLeft;
+          let trackWidth = eventContent.offsetWidth;
+
+          function onMouseMove(e) {
+            let deltaX = e.clientX - startX;
+            let newLeftPx = Math.max(0, initialLeft + deltaX);
+            let newStart = parseFloat(((newLeftPx / trackWidth) * cutsceneDuration).toFixed(1));
+            let endSec = ev.start + ev.duration;
+
+            if (newStart < endSec) {
+              ev.start = newStart;
+              ev.duration = parseFloat((endSec - newStart).toFixed(1));
+              renderTimeline();
+            }
+          }
+
+          function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          }
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+
+        block.onclick = () => openEventInspector(ev);
+        eventContent.appendChild(block);
+      });
+    }
+
+    async function openActorInspector(actor) {
+      document.getElementById('modal-title').innerText = `Gestisci Personaggio: ${actor.name}`;
+      const container = document.getElementById('asset-container');
+      const existingMove = timelineEvents.find(e => e.type === 'move' && e.actor === actor.name);
+      
+      const moveFrom = existingMove ? existingMove.from : [...actor.pos];
+      const moveTo = existingMove ? existingMove.to : [actor.pos[0] + 50, actor.pos[1]];
+
+      let basePath = actor.asset.substring(0, actor.asset.lastIndexOf('/')) || 'sprite/personaggioprincipale/fallback';
+
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:12px;">
+          <div class="field"><label>Nome Personaggio:</label><input type="text" id="edit-actor-name" value="${actor.name}"></div>
+          
+          <div class="field">
+            <label>Posa / Sprite:</label>
+            <select id="edit-actor-pose">
+              <option value="${basePath}/standing.png" ${actor.asset.endsWith('standing.png') ? 'selected' : ''}>Standing (Fronte)</option>
+              <option value="${basePath}/back.png" ${actor.asset.endsWith('back.png') ? 'selected' : ''}>Back (Retro)</option>
+              <option value="${basePath}/looking-left.png" ${actor.asset.endsWith('looking-left.png') ? 'selected' : ''}>Looking Left (Sinistra)</option>
+              <option value="${basePath}/looking-right.png" ${actor.asset.endsWith('looking-right.png') ? 'selected' : ''}>Looking Right (Destra)</option>
+            </select>
+          </div>
+
+          <hr style="border-color:var(--border);">
+          <h4>Posizione Iniziale</h4>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button style="background:#8b5cf6; flex:1;" onclick="startActorClickSelect('${actor.name}', 'start')">🖱 Seleziona Posizione Iniziale con un click</button>
+            <div class="field" style="width:70px; margin:0;"><label>X</label><input type="number" id="edit-actor-x" value="${actor.pos[0]}"></div>
+            <div class="field" style="width:70px; margin:0;"><label>Y</label><input type="number" id="edit-actor-y" value="${actor.pos[1]}"></div>
+          </div>
+
+          <hr style="border-color:var(--border);">
+          <h4>Movimento / Posizione Finale</h4>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button style="background:#3b82f6; flex:1;" onclick="startActorClickSelect('${actor.name}', 'end')">🖱 Seleziona Posizione Finale con un click</button>
+            <div class="field" style="width:70px; margin:0;"><label>X</label><input type="number" id="edit-move-end-x" value="${moveTo[0]}"></div>
+            <div class="field" style="width:70px; margin:0;"><label>Y</label><input type="number" id="edit-move-end-y" value="${moveTo[1]}"></div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button class="btn-success" onclick="saveActorInspector('${actor.id}')">Salva</button>
+            ${actor.id !== 'hero' ? `<button style="background:#dc3545;" onclick="deleteActor('${actor.id}')">🗑 Rimuovi dalla Timeline</button>` : ''}
+          </div>
+        </div>
+      `;
+      document.getElementById('picker-modal').style.display = 'block';
+    }
+
+    function startActorClickSelect(actorName, mode) {
+      closePicker();
+      clickMoveTargetActor = actorName;
+      clickMoveStep = mode; 
+      alert(`Clicca sullo stage per impostare la posizione ${mode === 'start' ? 'iniziale' : 'finale'} di ${actorName}`);
+    }
+
+    function saveActorInspector(actorId) {
+      const actor = actorsList.find(a => a.id === actorId);
+      if (actor) {
+        actor.name = document.getElementById('edit-actor-name').value;
+        actor.asset = document.getElementById('edit-actor-pose').value;
+        actor.pos[0] = parseInt(document.getElementById('edit-actor-x').value || 0);
+        actor.pos[1] = parseInt(document.getElementById('edit-actor-y').value || 0);
+
+        let endX = parseInt(document.getElementById('edit-move-end-x').value || actor.pos[0]);
+        let endY = parseInt(document.getElementById('edit-move-end-y').value || actor.pos[1]);
+
+        let ev = timelineEvents.find(e => e.type === 'move' && e.actor === actor.name);
+        if (!ev) {
+          timelineEvents.push({
+            id: Date.now(),
+            type: 'move',
+            actor: actor.name,
+            from: [...actor.pos],
+            to: [endX, endY],
+            start: 0,
+            duration: 3
+          });
+        } else {
+          ev.from = [...actor.pos];
+          ev.to = [endX, endY];
+        }
+
+        renderStageActors();
+        renderTimeline();
+        updateDropdownOptions();
+      }
+      closePicker();
+    }
+
+    function deleteActor(actorId) {
+      const idx = actorsList.findIndex(a => a.id === actorId);
+      if (idx !== -1) actorsList.splice(idx, 1);
+      renderStageActors();
+      renderTimeline();
+      updateDropdownOptions();
+      closePicker();
+    }
+
+    function openEventInspector(ev) {
+      document.getElementById('modal-title').innerText = `Modifica Evento`;
+      const container = document.getElementById('asset-container');
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:10px;">
+          <div class="field"><label>Inizio (s):</label><input type="number" id="edit-ev-start" value="${ev.start}" step="0.5"></div>
+          <div class="field"><label>Durata (s):</label><input type="number" id="edit-ev-duration" value="${ev.duration}" step="0.5"></div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-success" onclick="saveEventInspector(${ev.id})">Salva Evento</button>
+            <button style="background:#dc3545;" onclick="deleteEvent(${ev.id})">Elimina</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('picker-modal').style.display = 'block';
+    }
+
+    function saveEventInspector(id) {
+      const ev = timelineEvents.find(x => x.id === id);
+      if (ev) {
+        ev.start = parseFloat(document.getElementById('edit-ev-start').value);
+        ev.duration = parseFloat(document.getElementById('edit-ev-duration').value);
+        renderTimeline();
+      }
+      closePicker();
+    }
+
+    function deleteEvent(id) {
+      const idx = timelineEvents.findIndex(x => x.id === id);
+      if (idx !== -1) timelineEvents.splice(idx, 1);
+      renderTimeline();
+      closePicker();
+    }
+
+    function addDialogueEvent() {
+      const start = parseFloat(document.getElementById('event-start').value || 0);
+      const duration = parseFloat(document.getElementById('event-duration').value || 2);
+      const speaker = document.getElementById('dialogue-speaker').value;
+      const text = document.getElementById('event-text').value;
+
+      timelineEvents.push({ id: Date.now(), type: 'dialogue', speaker, text, start, duration });
+      renderTimeline();
+    }
+
+    function handleStageGlobalClick(e) {
+      if (isDialogueWaiting) {
+        document.getElementById('dialogue-overlay').style.display = 'none';
+        isDialogueWaiting = false;
+        return;
+      }
+      if (clickMoveStep === 0) return;
+
+      const rect = document.getElementById('stage').getBoundingClientRect();
+      const scaledSize = (48 * globalSpriteScale) / 100;
+      const x = Math.round(e.clientX - rect.left - (scaledSize / 2));
+      const y = Math.round(e.clientY - rect.top - (scaledSize / 2));
+
+      const actorObj = actorsList.find(a => a.name === clickMoveTargetActor);
+      if (actorObj) {
+        if (clickMoveStep === 'start') {
+          actorObj.pos = [x, y];
+          let ev = timelineEvents.find(ev => ev.type === 'move' && ev.actor === actorObj.name);
+          if (ev) ev.from = [x, y];
+        } else if (clickMoveStep === 'end') {
+          let ev = timelineEvents.find(ev => ev.type === 'move' && ev.actor === actorObj.name);
+          if (!ev) {
+            timelineEvents.push({
+              id: Date.now(),
+              type: 'move',
+              actor: actorObj.name,
+              from: [...actorObj.pos],
+              to: [x, y],
+              start: 0,
+              duration: 3
+            });
+          } else {
+            ev.to = [x, y];
+          }
+        }
+        renderStageActors();
+        renderTimeline();
+      }
+      clickMoveStep = 0;
+      clickMoveTargetActor = null;
+    }
+
+    function startPreview() {
+      stopPreview();
+      isPreviewRunning = true;
+      let currentTime = 0;
+      const triggered = new Set();
+
+      if (musicPath) {
+        bgAudio.src = `${SUPABASE_URL}/storage/v1/object/public/assets/${musicPath}`;
+        bgAudio.play().catch(e => console.error(e));
       }
 
-      if (cutsceneTimer) clearInterval(cutsceneTimer);
-
-      cutsceneTimer = setInterval(() => {
-        if (isDialogueActive) return;
-
-        (cutsceneData.events || []).forEach(ev => {
-          if (ev.type === 'move') {
-            const elapsed = cutsceneTime - ev.start;
-            if (elapsed >= 0 && elapsed <= ev.duration) {
-              const progress = Math.min(elapsed / ev.duration, 1.0);
-              const targetActorKey = Object.keys(actorElements).find(k => k.toLowerCase() === String(ev.actor).toLowerCase());
-
-              if (targetActorKey) {
-                const defaultPos = actorCurrentPos[targetActorKey] || { x: 100, y: 100 };
-                const fromCoords = ev.from || [defaultPos.x, defaultPos.y];
-                const toCoords = ev.to || [defaultPos.x + 50, defaultPos.y];
-
-                const currentX = fromCoords[0] + (toCoords[0] - fromCoords[0]) * progress;
-                const currentY = fromCoords[1] + (toCoords[1] - fromCoords[1]) * progress;
-                actorCurrentPos[targetActorKey] = { x: currentX, y: currentY };
-                
-                const el = actorElements[targetActorKey];
-                if (el) {
-                  el.style.left = `${(currentX / baseWidth) * 100}%`;
-                  el.style.top = `${(currentY / baseHeight) * 100}%`;
-                }
+      previewTimer = setInterval(() => {
+        if (!isPreviewRunning || isDialogueWaiting) return;
+        
+        timelineEvents.forEach(ev => {
+          if (ev.type === 'move' && currentTime >= ev.start && currentTime <= (ev.start + ev.duration)) {
+            const actorObj = actorsList.find(a => a.name === ev.actor);
+            if (actorObj) {
+              const dom = document.getElementById(`actor-dom-${actorObj.id}`);
+              if (dom) {
+                const progress = (currentTime - ev.start) / ev.duration;
+                const currentX = ev.from[0] + (ev.to[0] - ev.from[0]) * progress;
+                const currentY = ev.from[1] + (ev.to[1] - ev.from[1]) * progress;
+                dom.style.left = currentX + 'px';
+                dom.style.top = currentY + 'px';
               }
             }
           }
 
-          if (!triggeredEvents.has(ev.id) && cutsceneTime >= ev.start) {
+          if (!triggered.has(ev.id) && currentTime >= ev.start) {
+            triggered.add(ev.id);
             if (ev.type === 'dialogue') {
-              triggeredEvents.add(ev.id);
-              isDialogueActive = true;
-              document.getElementById('speaker-name').innerText = ev.speaker;
-              document.getElementById('dialogue-text').innerText = ev.text.replace(/\[nome\]/g, userData.username || 'Allenatore');
-              document.getElementById('dialogue-box').style.display = 'block';
+              isDialogueWaiting = true;
+              const speakerEl = document.getElementById('dialogue-speaker-name');
+              const textEl = document.getElementById('dialogue-text-content');
+              
+              if (ev.speaker === 'Narratore') {
+                speakerEl.style.display = 'none';
+                textEl.className = 'text narrator-style';
+              } else {
+                speakerEl.style.display = 'block';
+                speakerEl.innerText = ev.speaker;
+                textEl.className = 'text';
+              }
+              
+              textEl.innerText = ev.text;
+              document.getElementById('dialogue-overlay').style.display = 'block';
             }
           }
         });
 
-        cutsceneTime += 0.05;
-        if (cutsceneTime >= maxEventEnd) {
-          clearInterval(cutsceneTimer);
-          document.getElementById('gb-music').pause();
-          goToPart4();
-        }
+        currentTime += 0.05;
+        document.getElementById('time-display').innerText = `${currentTime.toFixed(1)} / ${cutsceneDuration.toFixed(1)} s`;
+        if (currentTime >= cutsceneDuration) stopPreview();
       }, 50);
     }
 
-    function handleCutsceneClick() {
-      if (isDialogueActive) {
-        document.getElementById('dialogue-box').style.display = 'none';
-        isDialogueActive = false;
-      }
+    function stopPreview() {
+      isPreviewRunning = false;
+      isDialogueWaiting = false;
+      if (previewTimer) clearInterval(previewTimer);
+      bgAudio.pause();
+      document.getElementById('dialogue-overlay').style.display = 'none';
+      renderStageActors();
     }
 
-    async function goToPart4() {
-      showScreen('part4');
-      document.getElementById('booster-container').style.display = 'flex';
-      document.getElementById('cards-area').style.display = 'none';
-      document.getElementById('part4-summary').style.display = 'none';
-      
-      const pack = document.getElementById('booster-pack');
-      pack.classList.remove('sliced-open');
-      packSliced = false;
-      setTimeout(setupLaserCanvas, 50);
-
-      const container = document.getElementById('cards-stack');
-      container.innerHTML = '';
-      cardsSwipedCount = 0;
-
-      const rarityConfig = [
-        { label: 'comuni', name: 'Comune' },
-        { label: 'non comuni', name: 'Non Comune' },
-        { label: 'rare', name: 'Rara' },
-        { label: 'ultra rare', name: 'Ultra Rara' },
-        { label: 'leggendarie', name: 'Leggendaria' }
-      ];
-
-      const slotProbabilities = [
-        { 'comuni': 90, 'non comuni': 10 },                               
-        { 'comuni': 80, 'non comuni': 20 },                               
-        { 'comuni': 50, 'non comuni': 30, 'rare': 19, 'ultra rare': 1 },    
-        { 'comuni': 15, 'non comuni': 35, 'rare': 35, 'ultra rare': 14, 'leggendarie': 1 } 
-      ];
-
-      const foldersContent = {};
-      for (let rc of rarityConfig) {
-        try {
-          const { data, error } = await _supabase.storage.from('cards-texts').list(rc.label, { limit: 100 });
-          if (data && !error) {
-            foldersContent[rc.label] = data
-              .filter(file => file.name && file.name.endsWith('.txt'))
-              .map(file => file.name.replace('.txt', ''));
-          } else {
-            foldersContent[rc.label] = [];
-          }
-        } catch(e) {
-          foldersContent[rc.label] = [];
-        }
-      }
-
-      const fallbackList = ['anello1'];
-      for (let rc of rarityConfig) {
-        if (!foldersContent[rc.label] || foldersContent[rc.label].length === 0) {
-          foldersContent[rc.label] = fallbackList;
-        }
-      }
-
-      let ownedIds = [];
-      try {
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if (iData) ownedIds = iData.map(i => i.card_id);
-      } catch(e) {}
-
-      drawnCards = [];
-
-      for (let i = 0; i < 4; i++) {
-        let chosenFolder = 'comuni';
-        
-        if (forcedRarity) {
-          const found = rarityConfig.find(r => r.name === forcedRarity);
-          chosenFolder = found ? found.label : 'comuni';
-        } else {
-          const roll = Math.random() * 100;
-          let cumulative = 0;
-          const probs = slotProbabilities[i];
-          
-          for (let folderKey in probs) {
-            cumulative += probs[folderKey];
-            if (roll <= cumulative) {
-              chosenFolder = folderKey;
-              break;
-            }
-          }
-        }
-
-        const fileList = foldersContent[chosenFolder];
-        const randomFileName = fileList[Math.floor(Math.random() * fileList.length)] || 'anello1';
-        const rarityObj = rarityConfig.find(r => r.label === chosenFolder);
-        const rarityName = rarityObj ? rarityObj.name : 'Comune';
-
-        let cardId = `${chosenFolder}_${randomFileName}`;
-        let cardName = randomFileName.replace(/-/g, ' ').replace(/^./, str => str.toUpperCase());
-        
-        const isDuplicate = ownedIds.includes(cardId);
-        drawnCards.push({ id: cardId, name: cardName, rarity: rarityName, file_name: randomFileName, folder: chosenFolder, isDuplicate });
-      }
-
-      drawnCards.forEach(async (card, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'card-wrapper';
-        wrapper.style.zIndex = 4 - index; 
-        
-        let dupHTML = card.isDuplicate ? `<div class="duplicate-tag">DOPPIONE</div>` : '';
-        let rarityCssClass = card.rarity === 'Leggendaria' ? 'leggendaria' : card.rarity === 'Ultra Rara' ? 'ultra-rara' : card.rarity === 'Rara' ? 'rara' : card.rarity === 'Non Comune' ? 'non-comune' : 'comune';
-
-        const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-images/${card.folder}/${card.file_name}.png`;
-        const textUrl = `${SUPABASE_URL}/storage/v1/object/public/cards-texts/${card.folder}/${card.file_name}.txt`;
-
-        wrapper.innerHTML = `
-          <div class="pokemon-card ${rarityCssClass} card-glow-reveal">
-            <div class="card-inner-frame">
-              <div class="title-container">
-                <span style="font-size: 7px; color: #ffd700; font-family: 'UnownFont', 'Press Start 2P', monospace;">${card.name}</span>
-              </div>
-              <div class="card-image-box">
-                <img id="card-img-${index}" src="${imageUrl}" alt="${card.name}" onerror="this.src='https://picsum.photos/200/280'">
-              </div>
-              <div class="card-description-box">
-                <span id="card-desc-${index}" class="card-description-text">"${card.rarity}"</span>
-              </div>
-            </div>
-            ${dupHTML}
-          </div>
-        `;
-        container.appendChild(wrapper);
-
-        try {
-          const res = await fetch(textUrl);
-          if (res.ok) {
-            const descText = await res.text();
-            const descEl = document.getElementById(`card-desc-${index}`);
-            if (descEl && descText.trim()) {
-              descEl.innerText = `"${descText.trim()}"`;
-            }
-          }
-        } catch (err) {}
-      });
-    }
-
-    function performSwipe(wrapper) {
-      if (wrapper.classList.contains('card-swiped')) return;
-      playHighVolumeSound('swipe');
-      wrapper.classList.add('card-swiped');
-      cardsSwipedCount++;
-
-      if (cardsSwipedCount === 4) {
-        setTimeout(() => {
-          document.getElementById('cards-area').style.display = 'none';
-          showPart4Summary();
-        }, 600);
-      }
-    }
-
-    async function showPart4Summary() {
-      const summaryArea = document.getElementById('part4-summary');
-      const tbody = document.getElementById('part4-summary-body');
-      tbody.innerHTML = '';
-
-      let inventory = [];
-      try {
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if (iData) inventory = iData;
-      } catch(e) {}
-
-      const counts = {};
-      inventory.forEach(i => { counts[i.card_id] = (counts[i.card_id] || 0) + 1; });
-      const tempCounts = { ...counts };
-      drawnCards.forEach(card => { if (!card.isDuplicate) tempCounts[card.id] = (tempCounts[card.id] || 0) + 1; });
-
-      drawnCards.forEach(card => {
-        let note = card.isDuplicate ? '+10 Polvere' : 'Nuova!';
-        let color = card.isDuplicate ? '#8b0000' : '#2e8b57';
-        tbody.innerHTML += `
-          <tr>
-            <td>${card.name}</td>
-            <td>${card.rarity}</td>
-            <td><b>${tempCounts[card.id] || 1}</b></td>
-            <td style="color: ${color}; font-weight: bold;">${note}</td>
-          </tr>
-        `;
-      });
-      summaryArea.style.display = 'block';
-    }
-
-    async function finalizePackAndGoToPart5() {
-      for (const card of drawnCards) {
-        if (card.isDuplicate) {
-          userData.dust_count += 10;
-          sessionSummary.push(`Doppione (${card.name}): +10 Polvere`);
-        } else {
-          try {
-            await _supabase.from('user_inventory').insert({ card_id: card.id });
-          } catch(e) {}
-          sessionSummary.push(`Nuova: ${card.name} (${card.rarity})`);
-        }
-      }
-
-      let nextDay = userData.streak_day + 1;
-      let nextMonths = userData.months_completed;
-      if (userData.streak_day >= 30) {
-        nextDay = 1;
-        nextMonths += 1;
-      }
-
-      try {
-        await _supabase.from('user_state').update({
-          streak_day: nextDay,
-          months_completed: nextMonths,
-          dust_count: userData.dust_count,
-        }).eq('id', 1);
-      } catch(e) {}
-
-      document.getElementById('summary-content').innerHTML = sessionSummary.map(item => `<p>- ${item}</p>`).join('');
-      showScreen('part5');
-    }
-
-    function turnOff() {
-      playHighVolumeSound('off');
-      showScreen('part2');
-      setTimeout(() => { showScreen('part6'); }, 1200);
-    }
-
-    function restart() {
-      sessionSummary = [];
-      forcedRarity = null;
-      showScreen('part0');
-    }
-
-    async function openAlbum() {
-      showScreen('part-album');
-      document.getElementById('excel-dust').innerText = userData ? userData.dust_count : 0;
-
-      let inventory = [];
-      try {
-        const { data: iData } = await _supabase.from('user_inventory').select('card_id');
-        if(iData) inventory = iData;
-      } catch(e) {}
-
-      const counts = {};
-      inventory.forEach(i => {
-        if (i.card_id) {
-          counts[i.card_id] = (counts[i.card_id] || 0) + 1;
-        }
-      });
-
-      const tbody = document.getElementById('excel-table-body');
-      tbody.innerHTML = '';
-
-      const rarityMap = {
-        'comuni': 'Comune',
-        'non': 'Non Comune',
-        'rare': 'Rara',
-        'ultra': 'Ultra Rara',
-        'leggendarie': 'Leggendaria'
+    function generateJSONData() {
+      return { 
+        duration: cutsceneDuration,
+        spriteScale: globalSpriteScale,
+        background: backgroundPath, 
+        music: musicPath, 
+        actors: actorsList, 
+        events: timelineEvents 
       };
+    }
 
-      const uniqueCardIds = Object.keys(counts);
-      if (uniqueCardIds.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:10px;">Nessuna carta nell'inventario</td></tr>`;
-        return;
+    async function saveToSupabase() {
+      const dayNumber = prompt("Inserisci il numero del giorno (es. 1 per giorno1.json):");
+      if (!dayNumber) return;
+
+      const fileName = `cutscenes/giorno${dayNumber.trim()}.json`;
+      const jsonContent = JSON.stringify(generateJSONData(), null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+
+      try {
+        const { error } = await _supabase.storage
+          .from('assets')
+          .upload(fileName, blob, { 
+            upsert: true,
+            cacheControl: '0'
+          });
+
+        if (error) throw error;
+        alert(`Cutscene salvata con successo come ${fileName}!`);
+      } catch(e) {
+        alert("Errore nel salvataggio: " + e.message);
       }
+    }
 
-      uniqueCardIds.forEach(cardId => {
-        const qty = counts[cardId];
-        const parts = cardId.split('_');
-        const folder = parts[0];
-        const rawName = parts.slice(1).join(' ') || cardId;
-        const cardName = rawName.replace(/-/g, ' ').replace(/^./, str => str.toUpperCase());
-        const rarity = rarityMap[folder] || 'Comune';
-
-        tbody.innerHTML += `
-          <tr>
-            <td>${cardId}</td>
-            <td>${cardName}</td>
-            <td>${rarity}</td>
-            <td style="font-weight: bold">${qty}</td>
-          </tr>
-        `;
-      });
+    function exportJSON() {
+      const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generateJSONData(), null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", jsonString);
+      downloadAnchor.setAttribute("download", "cutscene.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
   </script>
 </body>
